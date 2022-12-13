@@ -44,6 +44,11 @@ const parameters = {
   GHA_Event: context.eventName,
 };
 
+const ghaData = getInput("GHA_Data");
+if (ghaData.length > 0) {
+  Object.assign(parameters, { GHA_Data: ghaData });
+}
+
 const metaData = getInput("GHA_Meta");
 if (metaData.length > 0) {
   Object.assign(parameters, { GHA_Meta: metaData });
