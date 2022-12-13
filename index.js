@@ -49,10 +49,12 @@ if (ghaData.length > 0) {
   Object.assign(parameters, { GHA_Data: ghaData });
 }
 
+info(`Parameters with data:\n${JSON.stringify(parameters)}`);
 const metaData = getInput("GHA_Meta");
 if (metaData.length > 0) {
   Object.assign(parameters, { GHA_Meta: metaData });
 }
+info(`Parameters with metadata:\n${JSON.stringify(parameters)}`);
 
 const body = {
   parameters: parameters,
