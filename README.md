@@ -59,6 +59,26 @@ jobs:
 
 Optional [input parameters](https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#inputs) that allow you to specify additional metadata.
 
+### GHA_Data
+
+**required:** false
+
+**description**: A parameter for passing payload data. Will be available on the CircleCI pipeline as GHA_Data.
+
+```yaml
+jobs:
+  trigger-circleci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: <customize name>
+        id: <customize id>
+        uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.5
+        with:
+          GHA_Data: "<custom data>"
+        env:
+          CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
+```
+
 ### GHA_Meta
 
 **required:** false
