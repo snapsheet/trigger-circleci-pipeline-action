@@ -12746,6 +12746,11 @@ if (metaData.length > 0) {
   Object.assign(parameters, { GHA_Meta: metaData });
 }
 
+const cciContext = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("CCI_Context");
+if (cciContext.length > 0) {
+  Object.assign(parameters, { CCI_Context: cciContext });
+}
+
 const body = {
   parameters: parameters,
 };
