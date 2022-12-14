@@ -54,6 +54,11 @@ if (metaData.length > 0) {
   Object.assign(parameters, { GHA_Meta: metaData });
 }
 
+const cciContext = getInput("CCI_Context");
+if (cciContext.length > 0) {
+  Object.assign(parameters, { CCI_Context: cciContext });
+}
+
 const body = {
   parameters: parameters,
 };

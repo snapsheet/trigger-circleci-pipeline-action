@@ -99,6 +99,26 @@ jobs:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
 ```
 
+### CCI_Context
+
+**required:** false
+
+**description**: An optional CircleCI context to use when running jobs. Will be available on the CircleCI pipeline as CCI_Context.
+
+```yaml
+jobs:
+  trigger-circleci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: <customize name>
+        id: <customize id>
+        uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.5
+        with:
+          CCI_Context: protected-context-name
+        env:
+          CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
+```
+
 # Things To Know
 
 ## GitHub Actions runs _alongside_ native CircleCI integration.
