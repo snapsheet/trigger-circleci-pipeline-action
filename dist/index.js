@@ -12741,12 +12741,10 @@ if (ghaData.length > 0) {
   Object.assign(parameters, { GHA_Data: ghaData });
 }
 
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Parameters with data:\n${JSON.stringify(parameters)}`);
 const metaData = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("GHA_Meta");
 if (metaData.length > 0) {
   Object.assign(parameters, { GHA_Meta: metaData });
 }
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Parameters with meta-data:\n${JSON.stringify(parameters)}`);
 
 const body = {
   parameters: parameters,
