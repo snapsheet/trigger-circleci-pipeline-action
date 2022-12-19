@@ -12736,9 +12736,19 @@ const parameters = {
   GHA_Event: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.eventName,
 };
 
+const ghaData = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("GHA_Data");
+if (ghaData.length > 0) {
+  Object.assign(parameters, { GHA_Data: ghaData });
+}
+
 const metaData = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("GHA_Meta");
 if (metaData.length > 0) {
   Object.assign(parameters, { GHA_Meta: metaData });
+}
+
+const cciContext = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("CCI_Context");
+if (cciContext.length > 0) {
+  Object.assign(parameters, { CCI_Context: cciContext });
 }
 
 const body = {

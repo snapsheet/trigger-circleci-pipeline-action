@@ -7,6 +7,12 @@ inputs:
   GHA_Meta:
     required: false
     description: 'An optional additional metadata parameter. Will be available on the CircleCI pipeline as GHA_Meta'
+  GHA_Data:
+    required: false
+    description: 'A parameter for passing payload data. Will be available on the CircleCI pipeline as GHA_Data'
+  CCI_Context:
+    required: false
+    description: 'An optional CircleCI context to use when running jobs. Will be available on the CircleCI pipeline as CCI_Context'
 runs:
   using: 'node12'
   main: 'dist/index.js'
