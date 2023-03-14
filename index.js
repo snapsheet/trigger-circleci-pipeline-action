@@ -4,6 +4,7 @@ import {
   startGroup,
   endGroup,
   info,
+  setOutput,
   error as coreError,
 } from "@actions/core";
 import { context } from "@actions/github";
@@ -89,6 +90,10 @@ axios
   .then((response) => {
     startGroup("Successfully triggered CircleCI Pipeline");
     info(`CircleCI API Response: ${JSON.stringify(response.data)}`);
+    setOutput('created_at', response.data.created_at);
+    setOutput('id', response.data.id);
+    setOutput('number', response.data.number);
+    setOutput('state', response.data.state);
     endGroup();
   })
   .catch((error) => {
