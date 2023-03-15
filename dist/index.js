@@ -14470,6 +14470,7 @@ __nccwpck_require__.r(__webpack_exports__);
 (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Preparing CircleCI Pipeline Trigger");
 const repoOrg = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.owner;
 const repoName = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.repo;
+const host = `${process.env.CCI_HOST}` || "circleci.com";
 (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Org: ${repoOrg}`);
 (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Repo: ${repoName}`);
 const ref = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.ref;
@@ -14531,7 +14532,7 @@ if (tag) {
   Object.assign(body, { branch });
 }
 
-const url = `https://circleci.com/api/v2/project/gh/${repoOrg}/${repoName}/pipeline`;
+const url = `https://${host}/api/v2/project/gh/${repoOrg}/${repoName}/pipeline`;
 
 (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering CircleCI Pipeline for ${repoOrg}/${repoName}`);
 (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering URL: ${url}`);
