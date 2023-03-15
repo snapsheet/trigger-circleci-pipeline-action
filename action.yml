@@ -13,6 +13,15 @@ inputs:
   CCI_Context:
     required: false
     description: 'An optional CircleCI context to use when running jobs. Will be available on the CircleCI pipeline as CCI_Context'
+outputs:
+  id:
+    description: The unique ID of the pipeline.
+  state:
+    description: The current state of the pipeline.
+  number:
+    description: The number of the pipeline.
+  created_at:
+    description: The date and time the pipeline was created.
 runs:
   using: 'node12'
   main: 'dist/index.js'
