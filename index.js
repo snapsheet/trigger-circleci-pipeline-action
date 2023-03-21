@@ -138,9 +138,9 @@ const pollWorkflow = () => {
     });
 };
 
-info("Keep polling value is" + keepPolling);
+info("Keep polling value is " + keepPolling);
 
-if (keepPolling === true) {
+if (keepPolling) {
   const checkWebsiteStatus = setInterval(() => {
     if (pipeLineComplete) {
       clearInterval(checkWebsiteStatus);
