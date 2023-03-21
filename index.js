@@ -113,6 +113,8 @@ await axios
 let pipeLineComplete = false;
 const pollInterval = 3000; // in milliseconds
 
+const keepPolling = getInput("Follow").toLowerCase();
+
 const pollWorkflow = () => {
   axios
     .get(workFlowUrl, {
@@ -136,10 +138,12 @@ const pollWorkflow = () => {
     });
 };
 
-const checkWebsiteStatus = setInterval(() => {
-  if (pipeLineComplete) {
-    clearInterval(checkWebsiteStatus);
-  } else {
-    pollWorkflow();
-  }
-}, pollInterval);
+if(keepPolling === true){
+  const checkWebsiteStatus = setInterval(() => {
+    if (pipeLineComplete) {
+      clearInterval(checkWebsiteStatus);
+    } else {
+      pollWorkflow();
+    }
+  }, pollInterval);
+}

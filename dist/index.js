@@ -119,6 +119,8 @@ await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: he
 let pipeLineComplete = false;
 const pollInterval = 3000; // in milliseconds
 
+const keepPolling = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase();
+
 const pollWorkflow = () => {
   axios__WEBPACK_IMPORTED_MODULE_2___default().get(workFlowUrl, {
       headers: headers,
@@ -141,13 +143,15 @@ const pollWorkflow = () => {
     });
 };
 
-const checkWebsiteStatus = setInterval(() => {
-  if (pipeLineComplete) {
-    clearInterval(checkWebsiteStatus);
-  } else {
-    pollWorkflow();
-  }
-}, pollInterval);
+if (keepPolling === true) {
+  const checkWebsiteStatus = setInterval(() => {
+    if (pipeLineComplete) {
+      clearInterval(checkWebsiteStatus);
+    } else {
+      pollWorkflow();
+    }
+  }, pollInterval);
+}
 
 __webpack_handle_async_dependencies__();
 }, 1);

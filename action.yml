@@ -13,6 +13,9 @@ inputs:
   CCI_Context:
     required: false
     description: 'An optional CircleCI context to use when running jobs. Will be available on the CircleCI pipeline as CCI_Context'
+  Follow:
+    default: false
+    description: 'Follow the progress of the CircleCI pipeline and report success or failure based on pipeline success/failure.'
 outputs:
   id:
     description: The unique ID of the pipeline.
