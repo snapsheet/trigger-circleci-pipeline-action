@@ -143,6 +143,8 @@ const pollWorkflow = () => {
     });
 };
 
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("Keep polling value is" + keepPolling);
+
 if (keepPolling === true) {
   const checkWebsiteStatus = setInterval(() => {
     if (pipeLineComplete) {
