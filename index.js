@@ -110,7 +110,7 @@ await axios
     endGroup();
   });
 
-let pipeLineComplete = false;
+let pipelineComplete = false;
 const pollInterval = 3000; // in milliseconds
 
 const keepPolling = getInput("Follow").toLowerCase();
@@ -122,7 +122,7 @@ const pollWorkflow = () => {
     })
     .then((response) => {
       if (response.data.items[0].status != "running") {
-        pipeLineComplete = true;
+        pipelineComplete = true;
         if (response.data.items[0].status == "success") {
           info("CircleCI Pipeline is complete");
         } else {
@@ -138,11 +138,11 @@ const pollWorkflow = () => {
     });
 };
 
-info("Keep polling value is " + keepPolling);
+info("Poll CircleCI Workflow is is set to: " + keepPolling);
 
-if (keepPolling) {
+if (keepPolling == "true") {
   const checkWebsiteStatus = setInterval(() => {
-    if (pipeLineComplete) {
+    if (pipelineComplete) {
       clearInterval(checkWebsiteStatus);
     } else {
       pollWorkflow();

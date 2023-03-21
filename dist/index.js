@@ -116,7 +116,7 @@ await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: he
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
   });
 
-let pipeLineComplete = false;
+let pipelineComplete = false;
 const pollInterval = 3000; // in milliseconds
 
 const keepPolling = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase();
@@ -127,7 +127,7 @@ const pollWorkflow = () => {
     })
     .then((response) => {
       if (response.data.items[0].status != "running") {
-        pipeLineComplete = true;
+        pipelineComplete = true;
         if (response.data.items[0].status == "success") {
           (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("CircleCI Pipeline is complete");
         } else {
@@ -143,11 +143,11 @@ const pollWorkflow = () => {
     });
 };
 
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("Keep polling value is " + keepPolling);
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("Poll CircleCI Workflow is is set to: " + keepPolling);
 
-if (keepPolling) {
+if (keepPolling == "true") {
   const checkWebsiteStatus = setInterval(() => {
-    if (pipeLineComplete) {
+    if (pipelineComplete) {
       clearInterval(checkWebsiteStatus);
     } else {
       pollWorkflow();
