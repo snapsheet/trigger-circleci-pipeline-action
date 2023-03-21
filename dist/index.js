@@ -1,6 +1,159 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 2932:
+/***/ ((module, __webpack_exports__, __nccwpck_require__) => {
+
+"use strict";
+__nccwpck_require__.a(module, async (__webpack_handle_async_dependencies__) => {
+__nccwpck_require__.r(__webpack_exports__);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2186);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__nccwpck_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1__ = __nccwpck_require__(5438);
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(6545);
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(axios__WEBPACK_IMPORTED_MODULE_2__);
+
+
+
+
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Preparing CircleCI Pipeline Trigger");
+const repoOrg = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.owner;
+const repoName = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.repo;
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Org: ${repoOrg}`);
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Repo: ${repoName}`);
+const ref = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.ref;
+const headRef = process.env.GITHUB_HEAD_REF;
+
+const getBranch = () => {
+  if (ref.startsWith("refs/heads/")) {
+    return ref.substring(11);
+  } else if (ref.startsWith("refs/pull/") && headRef) {
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`This is a PR. Using head ref ${headRef} instead of ${ref}`);
+    return headRef;
+  }
+  return ref;
+};
+const getTag = () => {
+  if (ref.startsWith("refs/tags/")) {
+    return ref.substring(10);
+  }
+};
+
+const headers = {
+  "content-type": "application/json",
+  "x-attribution-login": _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.actor,
+  "x-attribution-actor-id": _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.actor,
+  "Circle-Token": `${process.env.CCI_TOKEN}`,
+};
+const parameters = {
+  GHA_Actor: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.actor,
+  GHA_Action: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.action,
+  GHA_Event: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.eventName,
+};
+
+const ghaData = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("GHA_Data");
+if (ghaData.length > 0) {
+  Object.assign(parameters, { GHA_Data: ghaData });
+}
+
+const metaData = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("GHA_Meta");
+if (metaData.length > 0) {
+  Object.assign(parameters, { GHA_Meta: metaData });
+}
+
+const cciContext = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("CCI_Context");
+if (cciContext.length > 0) {
+  Object.assign(parameters, { CCI_Context: cciContext });
+}
+
+const body = {
+  parameters: parameters,
+};
+
+const tag = getTag();
+const branch = getBranch();
+
+if (tag) {
+  Object.assign(body, { tag });
+} else {
+  Object.assign(body, { branch });
+}
+
+const url = `https://circleci.com/api/v2/project/gh/${repoOrg}/${repoName}/pipeline`;
+
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering CircleCI Pipeline for ${repoOrg}/${repoName}`);
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering URL: ${url}`);
+if (tag) {
+  (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering tag: ${tag}`);
+} else {
+  (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering branch: ${branch}`);
+}
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Parameters:\n${JSON.stringify(parameters)}`);
+(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+
+let workFlowUrl = null;
+
+await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: headers })
+  .then((response) => {
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Successfully triggered CircleCI Pipeline");
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`CircleCI API Response: ${JSON.stringify(response.data)}`);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("created_at", response.data.created_at);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("id", response.data.id);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("number", response.data.number);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("state", response.data.state);
+    workFlowUrl =
+      "https://circleci.com/api/v2/pipeline/" + response.data.id + "/workflow";
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(
+      `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
+    );
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+  })
+  .catch((error) => {
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Failed to trigger CircleCI Pipeline");
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(error);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+  });
+
+let pipeLineComplete = false;
+const pollInterval = 3000; // in milliseconds
+
+const pollWorkflow = () => {
+  axios__WEBPACK_IMPORTED_MODULE_2___default().get(workFlowUrl, {
+      headers: headers,
+    })
+    .then((response) => {
+      if (response.data.items[0].status != "running") {
+        pipeLineComplete = true;
+        if (response.data.items[0].status == "success") {
+          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("CircleCI Pipeline is complete");
+        } else {
+          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)("CircleCI Pipeline failed");
+        }
+      }
+    })
+    .catch((error) => {
+      (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Failed to Poll CircleCI Pipeline");
+      (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(error);
+      (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
+      (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+    });
+};
+
+const checkWebsiteStatus = setInterval(() => {
+  if (pipeLineComplete) {
+    clearInterval(checkWebsiteStatus);
+  } else {
+    pollWorkflow();
+  }
+}, pollInterval);
+
+__webpack_handle_async_dependencies__();
+}, 1);
+
+/***/ }),
+
 /***/ 7351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -14407,6 +14560,80 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/async module */
+/******/ 	(() => {
+/******/ 		var webpackThen = typeof Symbol === "function" ? Symbol("webpack then") : "__webpack_then__";
+/******/ 		var webpackExports = typeof Symbol === "function" ? Symbol("webpack exports") : "__webpack_exports__";
+/******/ 		var completeQueue = (queue) => {
+/******/ 			if(queue) {
+/******/ 				queue.forEach((fn) => (fn.r--));
+/******/ 				queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
+/******/ 			}
+/******/ 		}
+/******/ 		var completeFunction = (fn) => (!--fn.r && fn());
+/******/ 		var queueFunction = (queue, fn) => (queue ? queue.push(fn) : completeFunction(fn));
+/******/ 		var wrapDeps = (deps) => (deps.map((dep) => {
+/******/ 			if(dep !== null && typeof dep === "object") {
+/******/ 				if(dep[webpackThen]) return dep;
+/******/ 				if(dep.then) {
+/******/ 					var queue = [];
+/******/ 					dep.then((r) => {
+/******/ 						obj[webpackExports] = r;
+/******/ 						completeQueue(queue);
+/******/ 						queue = 0;
+/******/ 					});
+/******/ 					var obj = {};
+/******/ 												obj[webpackThen] = (fn, reject) => (queueFunction(queue, fn), dep['catch'](reject));
+/******/ 					return obj;
+/******/ 				}
+/******/ 			}
+/******/ 			var ret = {};
+/******/ 								ret[webpackThen] = (fn) => (completeFunction(fn));
+/******/ 								ret[webpackExports] = dep;
+/******/ 								return ret;
+/******/ 		}));
+/******/ 		__nccwpck_require__.a = (module, body, hasAwait) => {
+/******/ 			var queue = hasAwait && [];
+/******/ 			var exports = module.exports;
+/******/ 			var currentDeps;
+/******/ 			var outerResolve;
+/******/ 			var reject;
+/******/ 			var isEvaluating = true;
+/******/ 			var nested = false;
+/******/ 			var whenAll = (deps, onResolve, onReject) => {
+/******/ 				if (nested) return;
+/******/ 				nested = true;
+/******/ 				onResolve.r += deps.length;
+/******/ 				deps.map((dep, i) => (dep[webpackThen](onResolve, onReject)));
+/******/ 				nested = false;
+/******/ 			};
+/******/ 			var promise = new Promise((resolve, rej) => {
+/******/ 				reject = rej;
+/******/ 				outerResolve = () => (resolve(exports), completeQueue(queue), queue = 0);
+/******/ 			});
+/******/ 			promise[webpackExports] = exports;
+/******/ 			promise[webpackThen] = (fn, rejectFn) => {
+/******/ 				if (isEvaluating) { return completeFunction(fn); }
+/******/ 				if (currentDeps) whenAll(currentDeps, fn, rejectFn);
+/******/ 				queueFunction(queue, fn);
+/******/ 				promise['catch'](rejectFn);
+/******/ 			};
+/******/ 			module.exports = promise;
+/******/ 			body((deps) => {
+/******/ 				if(!deps) return outerResolve();
+/******/ 				currentDeps = wrapDeps(deps);
+/******/ 				var fn, result;
+/******/ 				var promise = new Promise((resolve, reject) => {
+/******/ 					fn = () => (resolve(result = currentDeps.map((d) => (d[webpackExports]))));
+/******/ 					fn.r = 0;
+/******/ 					whenAll(currentDeps, fn, reject);
+/******/ 				});
+/******/ 				return fn.r ? promise : result;
+/******/ 			}).then(outerResolve, reject);
+/******/ 			isEvaluating = false;
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat get default export */
 /******/ 	(() => {
 /******/ 		// getDefaultExport function for compatibility with non-harmony modules
@@ -14452,115 +14679,12 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-__nccwpck_require__.r(__webpack_exports__);
-/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2186);
-/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__nccwpck_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1__ = __nccwpck_require__(5438);
-/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(6545);
-/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(axios__WEBPACK_IMPORTED_MODULE_2__);
-
-
-
-
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Preparing CircleCI Pipeline Trigger");
-const repoOrg = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.owner;
-const repoName = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.repo.repo;
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Org: ${repoOrg}`);
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Repo: ${repoName}`);
-const ref = _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.ref;
-const headRef = process.env.GITHUB_HEAD_REF;
-
-const getBranch = () => {
-  if (ref.startsWith("refs/heads/")) {
-    return ref.substring(11);
-  } else if (ref.startsWith("refs/pull/") && headRef) {
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`This is a PR. Using head ref ${headRef} instead of ${ref}`);
-    return headRef;
-  }
-  return ref;
-};
-const getTag = () => {
-  if (ref.startsWith("refs/tags/")) {
-    return ref.substring(10);
-  }
-};
-
-const headers = {
-  "content-type": "application/json",
-  "x-attribution-login": _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.actor,
-  "x-attribution-actor-id": _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.actor,
-  "Circle-Token": `${process.env.CCI_TOKEN}`,
-};
-const parameters = {
-  GHA_Actor: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.actor,
-  GHA_Action: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.action,
-  GHA_Event: _actions_github__WEBPACK_IMPORTED_MODULE_1__.context.eventName,
-};
-
-const ghaData = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("GHA_Data");
-if (ghaData.length > 0) {
-  Object.assign(parameters, { GHA_Data: ghaData });
-}
-
-const metaData = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("GHA_Meta");
-if (metaData.length > 0) {
-  Object.assign(parameters, { GHA_Meta: metaData });
-}
-
-const cciContext = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("CCI_Context");
-if (cciContext.length > 0) {
-  Object.assign(parameters, { CCI_Context: cciContext });
-}
-
-const body = {
-  parameters: parameters,
-};
-
-const tag = getTag();
-const branch = getBranch();
-
-if (tag) {
-  Object.assign(body, { tag });
-} else {
-  Object.assign(body, { branch });
-}
-
-const url = `https://circleci.com/api/v2/project/gh/${repoOrg}/${repoName}/pipeline`;
-
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering CircleCI Pipeline for ${repoOrg}/${repoName}`);
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering URL: ${url}`);
-if (tag) {
-  (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering tag: ${tag}`);
-} else {
-  (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Triggering branch: ${branch}`);
-}
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`Parameters:\n${JSON.stringify(parameters)}`);
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
-
-axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: headers })
-  .then((response) => {
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Successfully triggered CircleCI Pipeline");
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`CircleCI API Response: ${JSON.stringify(response.data)}`);
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("created_at", response.data.created_at);
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("id", response.data.id);
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("number", response.data.number);
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("state", response.data.state);
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
-  })
-  .catch((error) => {
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Failed to trigger CircleCI Pipeline");
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(error);
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
-  });
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module used 'module' so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(2932);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;

@@ -85,7 +85,9 @@ if (tag) {
 info(`Parameters:\n${JSON.stringify(parameters)}`);
 endGroup();
 
-axios
+let workFlowUrl = null;
+
+await axios
   .post(url, body, { headers: headers })
   .then((response) => {
     startGroup("Successfully triggered CircleCI Pipeline");
@@ -94,6 +96,10 @@ axios
     setOutput("id", response.data.id);
     setOutput("number", response.data.number);
     setOutput("state", response.data.state);
+    workFlowUrl = "https://circleci.com/api/v2/pipeline/" + response.data.id + "/workflow";
+    info(
+      `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
+    );
     endGroup();
   })
   .catch((error) => {
@@ -102,3 +108,39 @@ axios
     setFailed(error.message);
     endGroup();
   });
+
+
+  let pipeLineComplete = false;
+  const pollInterval = 3000; // in milliseconds
+  
+  const pollWorkflow = () => {
+    axios
+      .get(workFlowUrl, {
+        headers: headers,
+      })
+      .then((response) => {
+        if (response.data.items[0].status != "running") {
+          pipeLineComplete = true;
+          if (response.data.items[0].status == "success") {
+            info("CircleCI Pipeline is complete");
+          } else {
+            setFailed("CircleCI Pipeline failed");
+          }
+        }
+      })
+      .catch((error) => {
+        startGroup("Failed to Poll CircleCI Pipeline");
+        coreError(error);
+        setFailed(error.message);
+        endGroup();
+      });
+  };
+  
+  const checkWebsiteStatus = setInterval(() => {
+    if (pipeLineComplete) {
+      clearInterval(checkWebsiteStatus);
+    } else {
+      pollWorkflow();
+    }
+  }, pollInterval);
+  
