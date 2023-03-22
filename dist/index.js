@@ -125,9 +125,9 @@ const pollWorkflow = () => {
     })
     .then((response) => {
       if (
-        response.data.items[0].status != "running" ||
-        response.data.items[0].status != "not_run" ||
-        response.data.items[0].status != "on_hold"
+        !["not_run", "on_hold", "running"].includes(
+          response.data.items[0].status
+        )
       ) {
         followWorkflow = false;
         if (response.data.items[0].status == "success") {
