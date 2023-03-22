@@ -120,7 +120,11 @@ const pollWorkflow = () => {
       headers: headers,
     })
     .then((response) => {
-      if (response.data.items[0].status != "running") {
+      if (
+        response.data.items[0].status != "running" ||
+        response.data.items[0].status != "not_run" ||
+        response.data.items[0].status != "on_hold"
+      ) {
         followWorkflow = false;
         if (response.data.items[0].status == "success") {
           info("CircleCI Workflow is complete");
@@ -141,11 +145,12 @@ const pollWorkflow = () => {
 
 if (followWorkflow) {
   info("Polling CircleCI Workflow");
-  const checkWebsiteStatus = setInterval(() => {
-    if (!followWorkflow) {
-      clearInterval(checkWebsiteStatus);
-    } else {
-      pollWorkflow();
-    }
-  }, pollInterval);
 }
+
+const checkWebsiteStatus = setInterval(() => {
+  if (!followWorkflow) {
+    clearInterval(checkWebsiteStatus);
+  } else {
+    pollWorkflow();
+  }
+}, pollInterval);
