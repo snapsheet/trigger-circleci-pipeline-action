@@ -102,9 +102,8 @@ await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: he
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("id", response.data.id);
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("number", response.data.number);
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("state", response.data.state);
-    workFlowUrl =
-      "https://circleci.com/api/v2/pipeline/" + response.data.id + "/workflow";
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(
+    workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.notice)(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
@@ -116,10 +115,9 @@ await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: he
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
   });
 
-let pipelineComplete = false;
 const pollInterval = 3000; // in milliseconds
 
-const keepPolling = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase();
+let followWorkflow = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase() == "true";
 
 const pollWorkflow = () => {
   axios__WEBPACK_IMPORTED_MODULE_2___default().get(workFlowUrl, {
@@ -127,27 +125,28 @@ const pollWorkflow = () => {
     })
     .then((response) => {
       if (response.data.items[0].status != "running") {
-        pipelineComplete = true;
+        followWorkflow = false;
         if (response.data.items[0].status == "success") {
-          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("CircleCI Pipeline is complete");
+          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("CircleCI Workflow is complete");
         } else {
-          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)("CircleCI Pipeline failed");
+          (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(
+            `Failure: CircleCI Workflow ${response.data.items[0].status}`
+          );
         }
       }
     })
     .catch((error) => {
-      (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Failed to Poll CircleCI Pipeline");
+      (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)("Failed to Poll CircleCI Workflow");
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(error);
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
     });
 };
 
-(0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("Poll CircleCI Workflow is is set to: " + keepPolling);
-
-if (keepPolling == "true") {
+if (followWorkflow) {
+  (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("Polling CircleCI Workflow");
   const checkWebsiteStatus = setInterval(() => {
-    if (pipelineComplete) {
+    if (!followWorkflow) {
       clearInterval(checkWebsiteStatus);
     } else {
       pollWorkflow();

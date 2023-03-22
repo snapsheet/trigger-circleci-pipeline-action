@@ -97,8 +97,7 @@ await axios
     setOutput("id", response.data.id);
     setOutput("number", response.data.number);
     setOutput("state", response.data.state);
-    workFlowUrl =
-      `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
+    workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
     notice(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
@@ -126,7 +125,9 @@ const pollWorkflow = () => {
         if (response.data.items[0].status == "success") {
           info("CircleCI Workflow is complete");
         } else {
-          setFailed(`Failure: CircleCI Workflow ${response.data.items[0].status}`);
+          setFailed(
+            `Failure: CircleCI Workflow ${response.data.items[0].status}`
+          );
         }
       }
     })
@@ -138,7 +139,7 @@ const pollWorkflow = () => {
     });
 };
 
-if (keepPolling == "true") {
+if (followWorkflow) {
   info("Polling CircleCI Workflow");
   const checkWebsiteStatus = setInterval(() => {
     if (!followWorkflow) {
