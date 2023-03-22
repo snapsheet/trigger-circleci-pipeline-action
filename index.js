@@ -4,6 +4,7 @@ import {
   startGroup,
   endGroup,
   info,
+  notice,
   setOutput,
   error as coreError,
 } from "@actions/core";
@@ -97,8 +98,8 @@ await axios
     setOutput("number", response.data.number);
     setOutput("state", response.data.state);
     workFlowUrl =
-      "https://circleci.com/api/v2/pipeline/" + response.data.id + "/workflow";
-    info(
+      `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
+    notice(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
     endGroup();
@@ -110,10 +111,9 @@ await axios
     endGroup();
   });
 
-let pipelineComplete = false;
 const pollInterval = 3000; // in milliseconds
 
-const keepPolling = getInput("Follow").toLowerCase();
+let followWorkflow = getInput("Follow").toLowerCase() == "true";
 
 const pollWorkflow = () => {
   axios
@@ -122,27 +122,26 @@ const pollWorkflow = () => {
     })
     .then((response) => {
       if (response.data.items[0].status != "running") {
-        pipelineComplete = true;
+        followWorkflow = false;
         if (response.data.items[0].status == "success") {
-          info("CircleCI Pipeline is complete");
+          info("CircleCI Workflow is complete");
         } else {
-          setFailed("CircleCI Pipeline failed");
+          setFailed(`Failure: CircleCI Workflow ${response.data.items[0].status}`);
         }
       }
     })
     .catch((error) => {
-      startGroup("Failed to Poll CircleCI Pipeline");
+      startGroup("Failed to Poll CircleCI Workflow");
       coreError(error);
       setFailed(error.message);
       endGroup();
     });
 };
 
-info("Poll CircleCI Workflow is is set to: " + keepPolling);
-
 if (keepPolling == "true") {
+  info("Polling CircleCI Workflow");
   const checkWebsiteStatus = setInterval(() => {
-    if (pipelineComplete) {
+    if (!followWorkflow) {
       clearInterval(checkWebsiteStatus);
     } else {
       pollWorkflow();
