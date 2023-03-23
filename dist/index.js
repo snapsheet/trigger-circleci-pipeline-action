@@ -103,7 +103,8 @@ await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: he
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("number", response.data.number);
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setOutput)("state", response.data.state);
     workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
-    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.notice)(
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.startGroup)(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
