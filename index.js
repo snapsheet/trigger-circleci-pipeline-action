@@ -4,6 +4,7 @@ import {
   startGroup,
   endGroup,
   info,
+  notice,
   setOutput,
   error as coreError,
 } from "@actions/core";
@@ -98,10 +99,9 @@ await axios
     setOutput("state", response.data.state);
     workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
     endGroup();
-    startGroup(
+    notice(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
-    endGroup();
   })
   .catch((error) => {
     startGroup("Failed to trigger CircleCI Pipeline");
