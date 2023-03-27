@@ -4,6 +4,7 @@ import {
   startGroup,
   endGroup,
   info,
+  notice,
   setOutput,
   error as coreError,
 } from "@actions/core";
@@ -85,7 +86,9 @@ if (tag) {
 info(`Parameters:\n${JSON.stringify(parameters)}`);
 endGroup();
 
-axios
+let workFlowUrl = null;
+
+await axios
   .post(url, body, { headers: headers })
   .then((response) => {
     startGroup("Successfully triggered CircleCI Pipeline");
@@ -94,7 +97,11 @@ axios
     setOutput("id", response.data.id);
     setOutput("number", response.data.number);
     setOutput("state", response.data.state);
+    workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
     endGroup();
+    notice(
+      `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
+    );
   })
   .catch((error) => {
     startGroup("Failed to trigger CircleCI Pipeline");
@@ -102,3 +109,48 @@ axios
     setFailed(error.message);
     endGroup();
   });
+
+const pollInterval = 3000; // in milliseconds
+
+let followWorkflow = getInput("Follow").toLowerCase() == "true";
+
+const pollWorkflow = () => {
+  axios
+    .get(workFlowUrl, {
+      headers: headers,
+    })
+    .then((response) => {
+      if (
+        !["not_run", "on_hold", "running"].includes(
+          response.data.items[0].status
+        )
+      ) {
+        followWorkflow = false;
+        if (response.data.items[0].status == "success") {
+          info("CircleCI Workflow is complete");
+        } else {
+          setFailed(
+            `Failure: CircleCI Workflow ${response.data.items[0].status}`
+          );
+        }
+      }
+    })
+    .catch((error) => {
+      startGroup("Failed to Poll CircleCI Workflow");
+      coreError(error);
+      setFailed(error.message);
+      endGroup();
+    });
+};
+
+if (followWorkflow) {
+  info("Polling CircleCI Workflow");
+}
+
+const checkWebsiteStatus = setInterval(() => {
+  if (!followWorkflow) {
+    clearInterval(checkWebsiteStatus);
+  } else {
+    pollWorkflow();
+  }
+}, pollInterval);
