@@ -112,8 +112,10 @@ await axios
 
 const pollInterval = 3000; // in milliseconds
 
-let followWorkflow = getInput("Follow").toLowerCase() == "true";
+let followWorkflow =
+  getInput("Follow").toLowerCase() == "true" && workFlowUrl != null;
 
+  
 const pollWorkflow = () => {
   axios
     .get(workFlowUrl, {

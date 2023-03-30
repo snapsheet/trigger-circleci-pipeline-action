@@ -117,7 +117,8 @@ await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: he
 
 const pollInterval = 3000; // in milliseconds
 
-let followWorkflow = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase() == "true";
+let followWorkflow =
+  (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase() == "true" && workFlowUrl != null;
 
 const pollWorkflow = () => {
   axios__WEBPACK_IMPORTED_MODULE_2___default().get(workFlowUrl, {
