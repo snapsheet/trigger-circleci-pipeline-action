@@ -145,6 +145,7 @@ const pollWorkflow = () => {
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(error);
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+      followWorkflow = false;
     });
 };
 
