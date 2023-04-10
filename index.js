@@ -61,6 +61,8 @@ if (cciContext.length > 0) {
   Object.assign(parameters, { CCI_Context: cciContext });
 }
 
+let followWorkflow = getInput("Follow").toLowerCase() == "true";
+
 const body = {
   parameters: parameters,
 };
@@ -108,12 +110,10 @@ await axios
     coreError(error);
     setFailed(error.message);
     endGroup();
+    followWorkflow = false;
   });
 
 const pollInterval = 3000; // in milliseconds
-
-let followWorkflow =
-  getInput("Follow").toLowerCase() == "true" && workFlowUrl != null;
 
 const pollWorkflow = () => {
   axios
