@@ -118,7 +118,12 @@ const pollInterval = 3000; // in milliseconds
 const pollWorkflow = () => {
   axios
     .get(workFlowUrl, {
-      headers: headers,
+      headers: {
+        "content-type": "application/json",
+        "x-attribution-login": context.actor,
+        "x-attribution-actor-id": context.actor,
+        "Circle-Token": "not the actual token",
+      },
     })
     .then((response) => {
       if (
