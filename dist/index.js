@@ -67,6 +67,8 @@ if (cciContext.length > 0) {
   Object.assign(parameters, { CCI_Context: cciContext });
 }
 
+let followWorkflow = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase() == "true";
+
 const body = {
   parameters: parameters,
 };
@@ -113,11 +115,10 @@ await axios__WEBPACK_IMPORTED_MODULE_2___default().post(url, body, { headers: he
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(error);
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
     (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+    followWorkflow = false;
   });
 
 const pollInterval = 3000; // in milliseconds
-
-let followWorkflow = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getInput)("Follow").toLowerCase() == "true";
 
 const pollWorkflow = () => {
   axios__WEBPACK_IMPORTED_MODULE_2___default().get(workFlowUrl, {
@@ -144,6 +145,7 @@ const pollWorkflow = () => {
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(error);
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.setFailed)(error.message);
       (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.endGroup)();
+      followWorkflow = false;
     });
 };
 
