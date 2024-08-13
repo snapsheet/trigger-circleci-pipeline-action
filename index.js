@@ -113,46 +113,53 @@ await axios
     followWorkflow = false;
   });
 
-const pollInterval = 3000; // in milliseconds
-
-const pollWorkflow = () => {
-  axios
-    .get(workFlowUrl, {
-      headers: headers,
-    })
-    .then((response) => {
-      if (
-        !["not_run", "on_hold", "running"].includes(
-          response.data.items[0].status
-        )
-      ) {
-        followWorkflow = false;
-        if (response.data.items[0].status == "success") {
-          info("CircleCI Workflow is complete");
-        } else {
-          setFailed(
-            `Failure: CircleCI Workflow ${response.data.items[0].status}`
-          );
+  const pollInterval = 3000; // in milliseconds
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  const pollWorkflow = () => {
+    axios
+      .get(workFlowUrl, {
+        headers: headers,
+      })
+      .then((response) => {
+        if (
+          !["not_run", "on_hold", "running"].includes(
+            response.data.items[0].status
+          )
+        ) {
+          followWorkflow = false;
+          if (response.data.items[0].status == "success") {
+            info("CircleCI Workflow is complete");
+          } else {
+            setFailed(
+              `Failure: CircleCI Workflow ${response.data.items[0].status}`
+            );
+          }
         }
-      }
-    })
-    .catch((error) => {
-      startGroup("Failed to Poll CircleCI Workflow");
-      coreError(error);
-      setFailed(error.message);
-      endGroup();
-      followWorkflow = false;
-    });
-};
-
-if (followWorkflow) {
-  info("Polling CircleCI Workflow");
-}
-
-const checkWebsiteStatus = setInterval(() => {
-  if (!followWorkflow) {
-    clearInterval(checkWebsiteStatus);
-  } else {
-    pollWorkflow();
+      })
+      .catch((error) => {
+        startGroup("Failed to Poll CircleCI Workflow");
+        coreError(error);
+        retryCount++;
+        if (retryCount < maxRetries) {
+          info(`Retrying... (${retryCount}/${maxRetries})`);
+        } else {
+          setFailed(`Failed after ${maxRetries} retries: ${error.message}`);
+          followWorkflow = false;
+        }
+        endGroup();
+      });
+  };
+  
+  if (followWorkflow) {
+    info("Polling CircleCI Workflow");
   }
-}, pollInterval);
+  
+  const checkWorkflowStatus = setInterval(() => {
+    if (!followWorkflow || retryCount >= maxRetries) {
+      clearInterval(checkWorkflowStatus);
+    } else {
+      pollWorkflow();
+    }
+  }, pollInterval);
