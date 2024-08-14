@@ -4,9 +4,16 @@ import * as github from '@actions/github';
 import * as core from '@actions/core';
 
 let inputs = {
-  "GHA_Data": "",
-  "GHA_Meta": "",
-  "CCI_Context": "",
+  "GHA_Data": JSON.stringify({
+    "deployment_ref": "master",
+    "environment_name": "qa1",
+    "skip-github": "false",
+    "skip-web": "false",
+    "verbose": "false",
+    "region": "us-west-1"
+  }),
+  "GHA_Meta": "qa1",
+  "CCI_Context": "qa",
   "Follow": "false"
 };
 let originalContext = {...github.context};
