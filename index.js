@@ -117,6 +117,7 @@ const pollWorkflow = () => {
     })
     .catch((error) => {
       setFailed(`Failed after retries: ${error.message}`);
+      followWorkflow = false;
     });
 };
 

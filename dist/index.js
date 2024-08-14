@@ -14930,6 +14930,7 @@ const pollWorkflow = () => {
     })
     .catch((error) => {
       (0,core.setFailed)(`Failed after retries: ${error.message}`);
+      followWorkflow = false;
     });
 };
 
