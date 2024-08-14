@@ -10,6 +10,7 @@ import {
 } from "@actions/core";
 import { context } from "@actions/github";
 import axios from "axios";
+import axiosRetry from 'axios-retry';
 
 startGroup("Preparing CircleCI Pipeline Trigger");
 const repoOrg = context.repo.owner;
@@ -18,6 +19,7 @@ info(`Org: ${repoOrg}`);
 info(`Repo: ${repoName}`);
 const ref = context.ref;
 const headRef = process.env.GITHUB_HEAD_REF;
+axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 const getBranch = () => {
   if (ref.startsWith("refs/heads/")) {
@@ -90,7 +92,7 @@ endGroup();
 
 let workFlowUrl = null;
 
-await axios
+axios
   .post(url, body, { headers: headers })
   .then((response) => {
     startGroup("Successfully triggered CircleCI Pipeline");
@@ -104,6 +106,18 @@ await axios
     notice(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
+
+    if (followWorkflow) {
+      info("Polling CircleCI Workflow");
+    }
+    const pollInterval = 3000; // in milliseconds
+    const checkWorkflowStatus = setInterval(() => {
+      if (!followWorkflow || retryCount >= maxRetries) {
+        clearInterval(checkWorkflowStatus);
+      } else {
+        pollWorkflow();
+      }
+    }, pollInterval);
   })
   .catch((error) => {
     startGroup("Failed to trigger CircleCI Pipeline");
@@ -112,10 +126,6 @@ await axios
     endGroup();
     followWorkflow = false;
   });
-
-const pollInterval = 3000; // in milliseconds
-const maxRetries = 3;
-let retryCount = 0;
 
 const pollWorkflow = () => {
   axios
@@ -139,27 +149,6 @@ const pollWorkflow = () => {
       }
     })
     .catch((error) => {
-      startGroup("Failed to Poll CircleCI Workflow");
-      coreError(error);
-      retryCount++;
-      if (retryCount < maxRetries) {
-        info(`Retrying... (${retryCount}/${maxRetries})`);
-      } else {
-        setFailed(`Failed after ${maxRetries} retries: ${error.message}`);
-        followWorkflow = false;
-      }
-      endGroup();
+      setFailed(`Failed after retries: ${error.message}`);
     });
 };
-
-if (followWorkflow) {
-  info("Polling CircleCI Workflow");
-}
-
-const checkWorkflowStatus = setInterval(() => {
-  if (!followWorkflow || retryCount >= maxRetries) {
-    clearInterval(checkWorkflowStatus);
-  } else {
-    pollWorkflow();
-  }
-}, pollInterval);
