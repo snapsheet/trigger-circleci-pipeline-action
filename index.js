@@ -10,7 +10,7 @@ import {
 } from "@actions/core";
 import { context } from "@actions/github";
 import axios from "axios";
-import axiosRetry from 'axios-retry';
+import axiosRetry from "axios-retry";
 
 startGroup("Preparing CircleCI Pipeline Trigger");
 const repoOrg = context.repo.owner;
@@ -112,7 +112,7 @@ axios
     }
     const pollInterval = 3000; // in milliseconds
     const checkWorkflowStatus = setInterval(() => {
-      if (!followWorkflow || retryCount >= maxRetries) {
+      if (!followWorkflow) {
         clearInterval(checkWorkflowStatus);
       } else {
         pollWorkflow();
