@@ -92,6 +92,32 @@ endGroup();
 
 let workFlowUrl = null;
 
+const pollWorkflow = () => {
+  axios
+    .get(workFlowUrl, {
+      headers: headers,
+    })
+    .then((response) => {
+      if (
+        !["not_run", "on_hold", "running"].includes(
+          response.data.items[0].status
+        )
+      ) {
+        followWorkflow = false;
+        if (response.data.items[0].status == "success") {
+          info("CircleCI Workflow is complete");
+        } else {
+          setFailed(
+            `Failure: CircleCI Workflow ${response.data.items[0].status}`
+          );
+        }
+      }
+    })
+    .catch((error) => {
+      setFailed(`Failed after retries: ${error.message}`);
+    });
+};
+
 axios
   .post(url, body, { headers: headers })
   .then((response) => {
@@ -126,29 +152,3 @@ axios
     endGroup();
     followWorkflow = false;
   });
-
-const pollWorkflow = () => {
-  axios
-    .get(workFlowUrl, {
-      headers: headers,
-    })
-    .then((response) => {
-      if (
-        !["not_run", "on_hold", "running"].includes(
-          response.data.items[0].status
-        )
-      ) {
-        followWorkflow = false;
-        if (response.data.items[0].status == "success") {
-          info("CircleCI Workflow is complete");
-        } else {
-          setFailed(
-            `Failure: CircleCI Workflow ${response.data.items[0].status}`
-          );
-        }
-      }
-    })
-    .catch((error) => {
-      setFailed(`Failed after retries: ${error.message}`);
-    });
-};

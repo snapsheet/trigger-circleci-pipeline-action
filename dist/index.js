@@ -14906,6 +14906,31 @@ if (tag) {
 
 let workFlowUrl = null;
 
+const pollWorkflow = () => {
+  axios_default().get(workFlowUrl, {
+      headers: headers,
+    })
+    .then((response) => {
+      if (
+        !["not_run", "on_hold", "running"].includes(
+          response.data.items[0].status
+        )
+      ) {
+        followWorkflow = false;
+        if (response.data.items[0].status == "success") {
+          (0,core.info)("CircleCI Workflow is complete");
+        } else {
+          (0,core.setFailed)(
+            `Failure: CircleCI Workflow ${response.data.items[0].status}`
+          );
+        }
+      }
+    })
+    .catch((error) => {
+      (0,core.setFailed)(`Failed after retries: ${error.message}`);
+    });
+};
+
 axios_default().post(url, body, { headers: headers })
   .then((response) => {
     (0,core.startGroup)("Successfully triggered CircleCI Pipeline");
@@ -14939,31 +14964,6 @@ axios_default().post(url, body, { headers: headers })
     (0,core.endGroup)();
     followWorkflow = false;
   });
-
-const pollWorkflow = () => {
-  axios_default().get(workFlowUrl, {
-      headers: headers,
-    })
-    .then((response) => {
-      if (
-        !["not_run", "on_hold", "running"].includes(
-          response.data.items[0].status
-        )
-      ) {
-        followWorkflow = false;
-        if (response.data.items[0].status == "success") {
-          (0,core.info)("CircleCI Workflow is complete");
-        } else {
-          (0,core.setFailed)(
-            `Failure: CircleCI Workflow ${response.data.items[0].status}`
-          );
-        }
-      }
-    })
-    .catch((error) => {
-      (0,core.setFailed)(`Failed after retries: ${error.message}`);
-    });
-};
 
 })();
 
