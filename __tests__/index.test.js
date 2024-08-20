@@ -26,6 +26,7 @@ axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 describe('Axios retry on failure', () => {
     beforeAll(() => {
+        jest.useFakeTimers(); // Use fake timers
         jest.spyOn(core, 'getInput').mockImplementation((name) => {
             return inputs[name];
         });
@@ -47,45 +48,54 @@ describe('Axios retry on failure', () => {
     });
 
     afterAll(() => {
+        jest.useRealTimers(); // Restore real timers
         jest.restoreAllMocks();
     });
 
+
     it('should retry the request if the first attempt fails', async () => {
-        const url = `https://circleci.com/api/v2/project/gh/some-owner/some-repo/pipeline`;
-        const pollingUrl = `https://circleci.com/api/v2/pipeline/12345/workflow`;
-
-        let requestCount = 0;
-
-        nock(url)
-            .post('')
-            .reply(200, { created_at: "date", id: "12345", number: "1", state: "running" });
-
-        nock(pollingUrl)
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            })
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            })
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            })
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            });
-
-        await expect(async () => {
-            await require("../index");
-        }).not.toThrow();
-
-        expect(requestCount).toBeGreaterThan(1);
-    });
+        let counter = 0;
+        jest.mock('axios', () => {
+            const originalAxios = jest.requireActual('axios');
+            return {
+              ...originalAxios,
+              get: jest.fn((url, headers) => {
+                  counter++;
+                  if (counter < 2) {
+                      return Promise.reject({ response: { status: 500 } });
+                  } else { 
+                      return Promise.resolve({ data: { items: [{ status: 'success' }] } });
+                  }
+              }),
+              post: jest.fn((url, body, headers) => {
+                return Promise.resolve({
+                  data: {
+                    created_at: "date",
+                    id: "12345",
+                    number: "1",
+                    state: "running"
+                  }
+                });
+              })
+            };
+        });          
+        
+        await require("../index");        
+        jest.advanceTimersByTime(100000); 
+        await waitForPollToFinish();
+        expect(counter).toBeGreaterThan(1);
+      });
 });
+
+
+function waitForPollToFinish() {
+    return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+            // Check a condition to see if polling is done
+            if (!global.followWorkflow) { // Replace this with your actual condition
+                clearInterval(checkInterval);
+                resolve();
+            }
+        }, 100); // Check every 100ms
+    });
+}

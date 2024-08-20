@@ -94,19 +94,19 @@ let workFlowUrl = null;
 
 const pollWorkflow = () => {
   axios
-    .get(workFlowUrl, {
-      headers: headers,
+  .get(workFlowUrl, {
+    headers: headers,
     })
     .then((response) => {
-      console.log(workFlowUrl);
-      console.log(response);
+      error(`called inside pollWorkflow`);
+      error(response)      
       if (
         !["not_run", "on_hold", "running"].includes(
           response.data.items[0].status
         )
       ) {
         followWorkflow = false;
-        if (response.data.items[0].status == "success") {
+        if (response.data.items[0].status == "success") {          
           info("CircleCI Workflow is complete");
         } else {
           setFailed(
