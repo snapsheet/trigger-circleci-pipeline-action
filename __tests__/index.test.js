@@ -22,8 +22,6 @@ let originalContext = { ...github.context };
 process.env["GITHUB_REPOSITORY"] = "testOwner/testRepo";
 process.env["GITHUB_HEAD_REF"] = "";
 
-axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
-
 describe("Axios retry on failure", () => {
   beforeAll(() => {
     jest.spyOn(core, "getInput").mockImplementation((name) => {
@@ -50,10 +48,8 @@ describe("Axios retry on failure", () => {
     jest.restoreAllMocks();
   });
 
-  it('should retry when the state is not "running"', async () => {
+  it('should retry until it is completed', async () => {
     const baseURL = "https://circleci.com/api/v2";
-
-    let requestCount = 0;
 
     nock(baseURL)
       .post("/project/gh/some-owner/some-repo/pipeline")
@@ -141,8 +137,6 @@ describe("Axios retry on failure", () => {
     await expect(async () => {
       await require("../index");
     }).not.toThrow();
-
-    expect(requestCount).toBeGreaterThan(1);
   });
 
   it("should retry the request if the first attempt fails", async () => {

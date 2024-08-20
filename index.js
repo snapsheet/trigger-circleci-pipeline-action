@@ -115,58 +115,45 @@ client
     if (followWorkflow) {
       info("Polling CircleCI Workflow");
     }
+  
+    client.interceptors.response.use(async (response) => {
+      // always reject and handle retry logic via axios-retry config
+      return Promise.reject(response);
+    });
     
+    const maxDelay = 4;
     axiosRetry(
       client,
       {
-        retries: 3,
-        retryDelay: axiosRetry.exponentialDelay,
+        retries: (60 / maxDelay) * 60, // retry for roughly an hour
+        retryDelay: () => {
+          // ...add any other custom logic for jitter.
+          return maxDelay * 1000; // in milliseconds
+        },
         retryCondition: (response) => {
           let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
           result;
           response;
 
           return result;
+        },
+        onMaxRetryTimesExceeded: (error, retryCount) => {
+          setFailed(`Failure: CircleCI Workflow ${response.data.items[0].status}`);
         }
       }
     );
     client
       .get(`/pipeline/${response.data.id}/workflow`, {
         'axios-retry': {
-          validateResponse: (response) => {
-            response;
-
-            return null;
-          },
-          onRetry: (retryCount, error, requestConfig) => {
-            error;
-
-            return null;
-          },
           retryCondition: (response) => {
             let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
-            result;
-            response;
-  
+            result ||= ["not_run", "on_hold", "running"].includes(response.data.items[0].status);
+
             return result;
           }
         }
       }).then((response) => {
-        console.log(response);
-        if (
-          !["not_run", "on_hold", "running"].includes(
-            response.data.items[0].status
-          )
-        ) {
-          followWorkflow = false;
-          if (response.data.items[0].status == "success") {
-            info("CircleCI Workflow is complete");
-          } else {
-            setFailed(
-              `Failure: CircleCI Workflow ${response.data.items[0].status}`
-            );
-          }
-        }
+        info("CircleCI Workflow is complete");
       })
     .catch((error) => {
       setFailed(`Failed after retries: ${error.message}`);
