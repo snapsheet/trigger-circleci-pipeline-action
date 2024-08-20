@@ -122,34 +122,22 @@ client
     });
     
     const maxDelay = 4;
-    axiosRetry(
-      client,
-      {
-        retries: (60 / maxDelay) * 60, // retry for roughly an hour
-        retryDelay: () => {
-          // ...add any other custom logic for jitter.
-          return maxDelay * 1000; // in milliseconds
-        },
-        retryCondition: (response) => {
-          let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
-          result;
-          response;
-
-          return result;
-        },
-        onMaxRetryTimesExceeded: (error, retryCount) => {
-          setFailed(`Failure: CircleCI Workflow ${response.data.items[0].status}`);
-        }
-      }
-    );
     client
       .get(`/pipeline/${response.data.id}/workflow`, {
         'axios-retry': {
+          retries: (60 / maxDelay) * 60, // retry for
+          retryDelay: () => {
+            // ...add any other custom logic for jitter.
+            return maxDelay * 1000; // in milliseconds
+          },
           retryCondition: (response) => {
             let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
             result ||= ["not_run", "on_hold", "running"].includes(response.data.items[0].status);
 
             return result;
+          },
+          onMaxRetryTimesExceeded: (error, retryCount) => {
+            setFailed(`Failure: CircleCI Workflow ${response.data.items[0].status}`);
           }
         }
       }).then((response) => {
