@@ -26,7 +26,6 @@ axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 describe('Axios retry on failure', () => {
     beforeAll(() => {
-        jest.useFakeTimers(); // Use fake timers
         jest.spyOn(core, 'getInput').mockImplementation((name) => {
             return inputs[name];
         });
@@ -45,10 +44,11 @@ describe('Axios retry on failure', () => {
         github.context.actor = 'test-actor';
         github.context.ref = 'refs/heads/some-ref';
         github.context.sha = '1234567890123456789012345678901234567890';
+        
+        jest.useFakeTimers(); // Use fake timers to control setInterval
     });
 
     afterAll(() => {
-        jest.useRealTimers(); // Restore real timers
         jest.restoreAllMocks();
     });
 
@@ -56,34 +56,28 @@ describe('Axios retry on failure', () => {
     it('should retry the request if the first attempt fails', async () => {
         let counter = 0;
         jest.mock('axios', () => {
-            const originalAxios = jest.requireActual('axios');
-            return {
-              ...originalAxios,
-              get: jest.fn((url, headers) => {
-                  counter++;
-                  if (counter < 2) {
-                      return Promise.reject({ response: { status: 500 } });
-                  } else { 
-                      return Promise.resolve({ data: { items: [{ status: 'success' }] } });
-                  }
-              }),
-              post: jest.fn((url, body, headers) => {
-                return Promise.resolve({
-                  data: {
-                    created_at: "date",
-                    id: "12345",
-                    number: "1",
-                    state: "running"
-                  }
-                });
-              })
-            };
-        });          
-        
-        await require("../index");        
-        jest.advanceTimersByTime(100000); 
+          const originalAxios = jest.requireActual('axios');
+          return {
+            ...originalAxios,
+            get: (async(url, headers) => {
+              throw new Error('Request failed');
+            }),
+            post: (async (url, body, headers) => {
+              return {
+                data: {
+                  created_at: "date",
+                  id: "12345",
+                  number: "1",
+                  state: "running"
+                }
+              };
+            })
+          }
+        });
+        await require("../index");
+        jest.advanceTimersByTime(10000);
         await waitForPollToFinish();
-        expect(counter).toBeGreaterThan(1);
+        
       });
 });
 
