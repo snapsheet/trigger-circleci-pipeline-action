@@ -125,7 +125,7 @@ client
     client
       .get(`/pipeline/${response.data.id}/workflow`, {
         'axios-retry': {
-          retries: (60 / maxDelay) * 60, // retry for
+          retries: (60 / maxDelay) * 60, // retry for roughly an hour
           retryDelay: () => {
             // ...add any other custom logic for jitter.
             return maxDelay * 1000; // in milliseconds
