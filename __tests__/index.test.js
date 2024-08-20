@@ -1,22 +1,22 @@
 let { expect, test, jest, beforeAll, afterAll } = require("@jest/globals");
-import * as github from '@actions/github';
-import * as core from '@actions/core';
-const axios = require('axios');
-const nock = require('nock');
-const axiosRetry = require('axios-retry');
+import * as github from "@actions/github";
+import * as core from "@actions/core";
+const axios = require("axios");
+const nock = require("nock");
+const axiosRetry = require("axios-retry");
 
 let inputs = {
-    "GHA_Data": JSON.stringify({
-        "deployment_ref": "master",
-        "environment_name": "qa1",
-        "skip-github": "false",
-        "skip-web": "false",
-        "verbose": "false",
-        "region": "us-west-1"
-    }),
-    "GHA_Meta": "qa1",
-    "CCI_Context": "qa",
-    "Follow": "true"
+  GHA_Data: JSON.stringify({
+    deployment_ref: "master",
+    environment_name: "qa1",
+    "skip-github": "false",
+    "skip-web": "false",
+    verbose: "false",
+    region: "us-west-1",
+  }),
+  GHA_Meta: "qa1",
+  CCI_Context: "qa",
+  Follow: "true",
 };
 let originalContext = { ...github.context };
 process.env["GITHUB_REPOSITORY"] = "testOwner/testRepo";
@@ -24,68 +24,168 @@ process.env["GITHUB_HEAD_REF"] = "";
 
 axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
-describe('Axios retry on failure', () => {
-    beforeAll(() => {
-        jest.spyOn(core, 'getInput').mockImplementation((name) => {
-            return inputs[name];
-        });
-
-        jest.spyOn(core, 'error').mockImplementation(jest.fn());
-        jest.spyOn(core, 'warning').mockImplementation(jest.fn());
-        jest.spyOn(core, 'info').mockImplementation(jest.fn());
-        jest.spyOn(core, 'debug').mockImplementation(jest.fn());
-
-        jest.spyOn(github.context, 'repo', 'get').mockImplementation(() => {
-            return {
-                owner: 'some-owner',
-                repo: 'some-repo'
-            };
-        });
-        github.context.actor = 'test-actor';
-        github.context.ref = 'refs/heads/some-ref';
-        github.context.sha = '1234567890123456789012345678901234567890';
+describe("Axios retry on failure", () => {
+  beforeAll(() => {
+    jest.spyOn(core, "getInput").mockImplementation((name) => {
+      return inputs[name];
     });
 
-    afterAll(() => {
-        jest.restoreAllMocks();
+    jest.spyOn(core, "error").mockImplementation(jest.fn());
+    jest.spyOn(core, "warning").mockImplementation(jest.fn());
+    jest.spyOn(core, "info").mockImplementation(jest.fn());
+    jest.spyOn(core, "debug").mockImplementation(jest.fn());
+
+    jest.spyOn(github.context, "repo", "get").mockImplementation(() => {
+      return {
+        owner: "some-owner",
+        repo: "some-repo",
+      };
     });
+    github.context.actor = "test-actor";
+    github.context.ref = "refs/heads/some-ref";
+    github.context.sha = "1234567890123456789012345678901234567890";
+  });
 
-    it('should retry the request if the first attempt fails', async () => {
-        const url = `https://circleci.com/api/v2/project/gh/some-owner/some-repo/pipeline`;
-        const pollingUrl = `https://circleci.com/api/v2/pipeline/12345/workflow`;
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
 
-        let requestCount = 0;
+  it('should retry when the state is not "running"', async () => {
+    const baseURL = "https://circleci.com/api/v2";
 
-        nock(url)
-            .post('')
-            .reply(200, { created_at: "date", id: "12345", number: "1", state: "running" });
+    let requestCount = 0;
 
-        nock(pollingUrl)
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            })
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            })
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            })
-            .get('')
-            .reply(500, () => {
-                requestCount++;
-                return { message: 'Internal Server Error' };
-            });
+    nock(baseURL)
+      .post("/project/gh/some-owner/some-repo/pipeline")
+      .reply(200, {
+        created_at: "date",
+        id: "12345",
+        number: "1",
+        state: "running"
+      });
 
-        await expect(async () => {
-            await require("../index");
-        }).not.toThrow();
+    nock(baseURL)
+      .get("/pipeline/12345/workflow")
+      .reply(200, {
+        items: [
+          {
+            canceled_by: "026a6d28-c22e-4aab-a8b4-bd7131a8ea35",
+            dependencies: ["497f6eca-6276-4993-bfeb-53cbbbba6f08"],
+            job_number: 0,
+            id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
+            started_at: "2019-08-24T14:15:22Z",
+            name: "string",
+            approved_by: "02030314-b162-4b4d-8af1-88eabdcc615d",
+            project_slug: "gh/CircleCI-Public/api-preview-docs",
+            status: "running",
+            type: "build",
+            stopped_at: "2019-08-24T14:15:22Z",
+            approval_request_id: "47bbf9d9-0b01-4281-9b67-9324ae3d0dff",
+          },
+        ]})
+      .get("/pipeline/12345/workflow")
+      .reply(200, {
+        items: [
+          {
+            canceled_by: "026a6d28-c22e-4aab-a8b4-bd7131a8ea35",
+            dependencies: ["497f6eca-6276-4993-bfeb-53cbbbba6f08"],
+            job_number: 0,
+            id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
+            started_at: "2019-08-24T14:15:22Z",
+            name: "string",
+            approved_by: "02030314-b162-4b4d-8af1-88eabdcc615d",
+            project_slug: "gh/CircleCI-Public/api-preview-docs",
+            status: "running",
+            type: "build",
+            stopped_at: "2019-08-24T14:15:22Z",
+            approval_request_id: "47bbf9d9-0b01-4281-9b67-9324ae3d0dff",
+          },
+        ]})
+      .get("/pipeline/12345/workflow")
+      .reply(200, {
+        items: [
+          {
+            canceled_by: "026a6d28-c22e-4aab-a8b4-bd7131a8ea35",
+            dependencies: ["497f6eca-6276-4993-bfeb-53cbbbba6f08"],
+            job_number: 0,
+            id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
+            started_at: "2019-08-24T14:15:22Z",
+            name: "string",
+            approved_by: "02030314-b162-4b4d-8af1-88eabdcc615d",
+            project_slug: "gh/CircleCI-Public/api-preview-docs",
+            status: "running",
+            type: "build",
+            stopped_at: "2019-08-24T14:15:22Z",
+            approval_request_id: "47bbf9d9-0b01-4281-9b67-9324ae3d0dff",
+          },
+        ]})
+      .get("/pipeline/12345/workflow")
+      .reply(200, {
+        items: [
+          {
+            canceled_by: "026a6d28-c22e-4aab-a8b4-bd7131a8ea35",
+            dependencies: ["497f6eca-6276-4993-bfeb-53cbbbba6f08"],
+            job_number: 0,
+            id: "497f6eca-6276-4993-bfeb-53cbbbba6f08",
+            started_at: "2019-08-24T14:15:22Z",
+            name: "string",
+            approved_by: "02030314-b162-4b4d-8af1-88eabdcc615d",
+            project_slug: "gh/CircleCI-Public/api-preview-docs",
+            status: "success",
+            type: "build",
+            stopped_at: "2019-08-24T14:15:22Z",
+            approval_request_id: "47bbf9d9-0b01-4281-9b67-9324ae3d0dff",
+          },
+        ]});
 
-        expect(requestCount).toBeGreaterThan(1);
-    });
+    await expect(async () => {
+      await require("../index");
+    }).not.toThrow();
+
+    expect(requestCount).toBeGreaterThan(1);
+  });
+
+  it("should retry the request if the first attempt fails", async () => {
+    const url = `https://circleci.com/api/v2/project/gh/some-owner/some-repo/pipeline`;
+    const pollingUrl = `https://circleci.com/api/v2/pipeline/12345/workflow`;
+
+    let requestCount = 0;
+
+    nock(url)
+      .post("")
+      .reply(200, {
+        created_at: "date",
+        id: "12345",
+        number: "1",
+        state: "running",
+      });
+
+    nock(pollingUrl)
+      .get("")
+      .reply(500, () => {
+        requestCount++;
+        return { message: "Internal Server Error" };
+      })
+      .get("")
+      .reply(500, () => {
+        requestCount++;
+        return { message: "Internal Server Error" };
+      })
+      .get("")
+      .reply(500, () => {
+        requestCount++;
+        return { message: "Internal Server Error" };
+      })
+      .get("")
+      .reply(500, () => {
+        requestCount++;
+        return { message: "Internal Server Error" };
+      });
+
+    await expect(async () => {
+      await require("../index");
+    }).not.toThrow();
+
+    expect(requestCount).toBeGreaterThan(1);
+  });
 });

@@ -19,7 +19,6 @@ info(`Org: ${repoOrg}`);
 info(`Repo: ${repoName}`);
 const ref = context.ref;
 const headRef = process.env.GITHUB_HEAD_REF;
-axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 const getBranch = () => {
   if (ref.startsWith("refs/heads/")) {
@@ -78,10 +77,9 @@ if (tag) {
   Object.assign(body, { branch });
 }
 
-const url = `https://circleci.com/api/v2/project/gh/${repoOrg}/${repoName}/pipeline`;
+const baseURL = "https://circleci.com/api/v2";
 
 info(`Triggering CircleCI Pipeline for ${repoOrg}/${repoName}`);
-info(`Triggering URL: ${url}`);
 if (tag) {
   info(`Triggering tag: ${tag}`);
 } else {
@@ -90,39 +88,18 @@ if (tag) {
 info(`Parameters:\n${JSON.stringify(parameters)}`);
 endGroup();
 
-let workFlowUrl = null;
+let client = axios.create({baseURL, headers});
 
-const pollWorkflow = () => {
-  axios
-    .get(workFlowUrl, {
-      headers: headers,
-    })
-    .then((response) => {
-      console.log(workFlowUrl);
-      console.log(response);
-      if (
-        !["not_run", "on_hold", "running"].includes(
-          response.data.items[0].status
-        )
-      ) {
-        followWorkflow = false;
-        if (response.data.items[0].status == "success") {
-          info("CircleCI Workflow is complete");
-        } else {
-          setFailed(
-            `Failure: CircleCI Workflow ${response.data.items[0].status}`
-          );
-        }
-      }
-    })
-    .catch((error) => {
-      setFailed(`Failed after retries: ${error.message}`);
-      followWorkflow = false;
-    });
-};
+axiosRetry(
+  client,
+  {
+    retries: 3,
+    retryDelay: axiosRetry.exponentialDelay
+  }
+);
 
-axios
-  .post(url, body, { headers: headers })
+client
+  .post(`/project/gh/${repoOrg}/${repoName}/pipeline`, body)
   .then((response) => {
     startGroup("Successfully triggered CircleCI Pipeline");
     info(`CircleCI API Response: ${JSON.stringify(response.data)}`);
@@ -130,28 +107,74 @@ axios
     setOutput("id", response.data.id);
     setOutput("number", response.data.number);
     setOutput("state", response.data.state);
-    workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
     endGroup();
     notice(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
-
+    
     if (followWorkflow) {
       info("Polling CircleCI Workflow");
     }
-    const pollInterval = 3000; // in milliseconds
-    const checkWorkflowStatus = setInterval(() => {
-      if (!followWorkflow) {
-        clearInterval(checkWorkflowStatus);
-      } else {
-        pollWorkflow();
+    
+    axiosRetry(
+      client,
+      {
+        retries: 3,
+        retryDelay: axiosRetry.exponentialDelay,
+        retryCondition: (response) => {
+          let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
+          result;
+          response;
+
+          return result;
+        }
       }
-    }, pollInterval);
+    );
+    client
+      .get(`/pipeline/${response.data.id}/workflow`, {
+        'axios-retry': {
+          validateResponse: (response) => {
+            response;
+
+            return null;
+          },
+          onRetry: (retryCount, error, requestConfig) => {
+            error;
+
+            return null;
+          },
+          retryCondition: (response) => {
+            let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
+            result;
+            response;
+  
+            return result;
+          }
+        }
+      }).then((response) => {
+        console.log(response);
+        if (
+          !["not_run", "on_hold", "running"].includes(
+            response.data.items[0].status
+          )
+        ) {
+          followWorkflow = false;
+          if (response.data.items[0].status == "success") {
+            info("CircleCI Workflow is complete");
+          } else {
+            setFailed(
+              `Failure: CircleCI Workflow ${response.data.items[0].status}`
+            );
+          }
+        }
+      })
+    .catch((error) => {
+      setFailed(`Failed after retries: ${error.message}`);
+    });
   })
   .catch((error) => {
     startGroup("Failed to trigger CircleCI Pipeline");
     coreError(error);
     setFailed(error.message);
     endGroup();
-    followWorkflow = false;
   });
