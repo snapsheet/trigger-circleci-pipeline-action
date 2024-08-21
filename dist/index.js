@@ -14934,6 +14934,7 @@ axiosRetry((axios_default()), { retries: 3, retryDelay: axiosRetry.exponentialDe
     try {
       console.log("Testing the monitorWorkflow function");
       await monitorWorkflow(workFlowUrl, headers);
+      console.log("monitorWorkflow function is completed");
     } catch (error) {
       (0,core.setFailed)(`Failed to monitor CircleCI workflow: ${error.message}`);
     }
@@ -14994,21 +14995,29 @@ async function monitorWorkflow(url, headers) {
       console.log(status);
 
       if (!["not_run", "on_hold", "running"].includes(status)) {
+        console.log("Inside if");
         workflowComplete = true;
         if (status === "success") {
+          console.log("Is successful");
           (0,core.info)("CircleCI Workflow is complete");
+          console.log("CCI workflow is complete");
         } else {
           (0,core.setFailed)(`Failure: CircleCI Workflow ${status}`);
         }
       } else {
         (0,core.info)(`Workflow status: ${status}. Continuing to monitor...`);
       }
+      console.log("Going to sleep for 3 seconds");
       await new Promise((resolve) => setTimeout(resolve, 3000));
+      console.log("Sleeping for 3 seconds done");
+      console.log("End of while loop");
+      console.log("workflowComplete: ", workflowComplete);
     } catch (error) {
       (0,core.error)(`Error monitoring workflow: ${error.message}`);
       throw error;
     }
   }
+  console.log("End of monitorWorkflow");
 }
 
 })();

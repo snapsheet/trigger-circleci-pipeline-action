@@ -121,6 +121,7 @@ axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
     try {
       console.log("Testing the monitorWorkflow function");
       await monitorWorkflow(workFlowUrl, headers);
+      console.log("monitorWorkflow function is completed");
     } catch (error) {
       setFailed(`Failed to monitor CircleCI workflow: ${error.message}`);
     }
@@ -170,30 +171,38 @@ axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 async function monitorWorkflow(url, headers) {
   let workflowComplete = false;
-  console.log("Starting monitorWorkflow")
+  console.log("Starting monitorWorkflow");
   while (!workflowComplete) {
     try {
       console.log("Trying to get workflow status");
       const response = await axios.get(url, { headers });
       console.log("Got response");
-      console.log(response);     
+      console.log(response);
       const status = response.data.items[0].status;
-      console.log(status);     
+      console.log(status);
 
       if (!["not_run", "on_hold", "running"].includes(status)) {
+        console.log("Inside if");
         workflowComplete = true;
         if (status === "success") {
+          console.log("Is successful");
           info("CircleCI Workflow is complete");
+          console.log("CCI workflow is complete");
         } else {
           setFailed(`Failure: CircleCI Workflow ${status}`);
         }
       } else {
         info(`Workflow status: ${status}. Continuing to monitor...`);
       }
+      console.log("Going to sleep for 3 seconds");
       await new Promise((resolve) => setTimeout(resolve, 3000));
+      console.log("Sleeping for 3 seconds done");
+      console.log("End of while loop");
+      console.log("workflowComplete: ", workflowComplete);
     } catch (error) {
       coreError(`Error monitoring workflow: ${error.message}`);
       throw error;
     }
   }
+  console.log("End of monitorWorkflow");
 }
