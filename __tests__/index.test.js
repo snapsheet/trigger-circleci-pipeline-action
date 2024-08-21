@@ -63,8 +63,8 @@ describe('Axios retry on failure', () => {
             ...originalAxios,
             get: (async(url, headers) => {
                 console.log("Get request");
-                counter++;
-                console.log("counter increased");
+                ++counter;
+                console.log("counter increased " + counter);
                 return {
                   data: { items : [{ status : "success"}] }
                 };             
@@ -81,8 +81,12 @@ describe('Axios retry on failure', () => {
             })
           }
         });
-        require("../index");
-        jest.advanceTimersByTime(10000);
+        console.log("before promise");
+        await require("../index");
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        console.log("It is fine till here");
         console.log("Counter: " + counter);
+        expect(counter).toBe(1);
       });
+      
 });

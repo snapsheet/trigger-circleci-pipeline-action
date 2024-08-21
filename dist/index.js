@@ -1,6 +1,485 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 1498:
+/***/ ((module, __webpack_exports__, __nccwpck_require__) => {
+
+"use strict";
+// ESM COMPAT FLAG
+__nccwpck_require__.r(__webpack_exports__);
+
+// EXPORTS
+__nccwpck_require__.d(__webpack_exports__, {
+  "runAction": () => (/* binding */ runAction)
+});
+
+// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
+var core = __nccwpck_require__(2186);
+// EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
+var github = __nccwpck_require__(5438);
+// EXTERNAL MODULE: ./node_modules/axios/index.js
+var axios = __nccwpck_require__(6545);
+var axios_default = /*#__PURE__*/__nccwpck_require__.n(axios);
+// EXTERNAL MODULE: ./node_modules/is-retry-allowed/index.js
+var is_retry_allowed = __nccwpck_require__(841);
+;// CONCATENATED MODULE: ./node_modules/axios-retry/lib/esm/index.js
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
+
+function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
+
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) { symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); } keys.push.apply(keys, symbols); } return keys; }
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+
+var namespace = 'axios-retry';
+/**
+ * @param  {Error}  error
+ * @return {boolean}
+ */
+
+function isNetworkError(error) {
+  var CODE_EXCLUDE_LIST = ['ERR_CANCELED', 'ECONNABORTED'];
+  return !error.response && Boolean(error.code) && // Prevents retrying cancelled requests
+  !CODE_EXCLUDE_LIST.includes(error.code) && // Prevents retrying timed out & cancelled requests
+  is_retry_allowed(error) // Prevents retrying unsafe errors
+  ;
+}
+var SAFE_HTTP_METHODS = ['get', 'head', 'options'];
+var IDEMPOTENT_HTTP_METHODS = SAFE_HTTP_METHODS.concat(['put', 'delete']);
+/**
+ * @param  {Error}  error
+ * @return {boolean}
+ */
+
+function isRetryableError(error) {
+  return error.code !== 'ECONNABORTED' && (!error.response || error.response.status >= 500 && error.response.status <= 599);
+}
+/**
+ * @param  {Error}  error
+ * @return {boolean}
+ */
+
+function isSafeRequestError(error) {
+  if (!error.config) {
+    // Cannot determine if the request can be retried
+    return false;
+  }
+
+  return isRetryableError(error) && SAFE_HTTP_METHODS.indexOf(error.config.method) !== -1;
+}
+/**
+ * @param  {Error}  error
+ * @return {boolean}
+ */
+
+function isIdempotentRequestError(error) {
+  if (!error.config) {
+    // Cannot determine if the request can be retried
+    return false;
+  }
+
+  return isRetryableError(error) && IDEMPOTENT_HTTP_METHODS.indexOf(error.config.method) !== -1;
+}
+/**
+ * @param  {Error}  error
+ * @return {boolean}
+ */
+
+function isNetworkOrIdempotentRequestError(error) {
+  return isNetworkError(error) || isIdempotentRequestError(error);
+}
+/**
+ * @return {number} - delay in milliseconds, always 0
+ */
+
+function noDelay() {
+  return 0;
+}
+/**
+ * Set delayFactor 1000 for an exponential delay to occur on the order
+ * of seconds
+ * @param  {number} [retryNumber=0]
+ * @param  {Error}  error - unused; for existing API of retryDelay callback
+ * @param  {number} [delayFactor=100] milliseconds
+ * @return {number} - delay in milliseconds
+ */
+
+
+function exponentialDelay() {
+  var retryNumber = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+  var error = arguments.length > 1 ? arguments[1] : undefined;
+  var delayFactor = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 100;
+  var delay = Math.pow(2, retryNumber) * delayFactor;
+  var randomSum = delay * 0.2 * Math.random(); // 0-20% of the delay
+
+  return delay + randomSum;
+}
+/** @type {IAxiosRetryConfig} */
+
+var DEFAULT_OPTIONS = {
+  retries: 3,
+  retryCondition: isNetworkOrIdempotentRequestError,
+  retryDelay: noDelay,
+  shouldResetTimeout: false,
+  onRetry: () => {}
+};
+/**
+ * Returns the axios-retry options for the current request
+ * @param  {AxiosRequestConfig} config
+ * @param  {IAxiosRetryConfig} defaultOptions
+ * @return {IAxiosRetryConfigExtended}
+ */
+
+function getRequestOptions(config, defaultOptions) {
+  return _objectSpread(_objectSpread(_objectSpread({}, DEFAULT_OPTIONS), defaultOptions), config[namespace]);
+}
+/**
+ * Initializes and returns the retry state for the given request/config
+ * @param  {AxiosRequestConfig} config
+ * @param  {IAxiosRetryConfig} defaultOptions
+ * @return {IAxiosRetryConfigExtended}
+ */
+
+
+function getCurrentState(config, defaultOptions) {
+  var currentState = getRequestOptions(config, defaultOptions);
+  currentState.retryCount = currentState.retryCount || 0;
+  config[namespace] = currentState;
+  return currentState;
+}
+/**
+ * @param  {Axios} axios
+ * @param  {AxiosRequestConfig} config
+ */
+
+
+function fixConfig(axios, config) {
+  if (axios.defaults.agent === config.agent) {
+    delete config.agent;
+  }
+
+  if (axios.defaults.httpAgent === config.httpAgent) {
+    delete config.httpAgent;
+  }
+
+  if (axios.defaults.httpsAgent === config.httpsAgent) {
+    delete config.httpsAgent;
+  }
+}
+/**
+ * Checks retryCondition if request can be retried. Handles it's returning value or Promise.
+ * @param  {IAxiosRetryConfigExtended} currentState
+ * @param  {Error} error
+ * @return {Promise<boolean>}
+ */
+
+
+function shouldRetry(_x, _x2) {
+  return _shouldRetry.apply(this, arguments);
+}
+/**
+ * Adds response interceptors to an axios instance to retry requests failed due to network issues
+ *
+ * @example
+ *
+ * import axios from 'axios';
+ *
+ * axiosRetry(axios, { retries: 3 });
+ *
+ * axios.get('http://example.com/test') // The first request fails and the second returns 'ok'
+ *   .then(result => {
+ *     result.data; // 'ok'
+ *   });
+ *
+ * // Exponential back-off retry delay between requests
+ * axiosRetry(axios, { retryDelay : axiosRetry.exponentialDelay});
+ *
+ * // Custom retry delay
+ * axiosRetry(axios, { retryDelay : (retryCount) => {
+ *   return retryCount * 1000;
+ * }});
+ *
+ * // Also works with custom axios instances
+ * const client = axios.create({ baseURL: 'http://example.com' });
+ * axiosRetry(client, { retries: 3 });
+ *
+ * client.get('/test') // The first request fails and the second returns 'ok'
+ *   .then(result => {
+ *     result.data; // 'ok'
+ *   });
+ *
+ * // Allows request-specific configuration
+ * client
+ *   .get('/test', {
+ *     'axios-retry': {
+ *       retries: 0
+ *     }
+ *   })
+ *   .catch(error => { // The first request fails
+ *     error !== undefined
+ *   });
+ *
+ * @param {Axios} axios An axios instance (the axios object or one created from axios.create)
+ * @param {Object} [defaultOptions]
+ * @param {number} [defaultOptions.retries=3] Number of retries
+ * @param {boolean} [defaultOptions.shouldResetTimeout=false]
+ *        Defines if the timeout should be reset between retries
+ * @param {Function} [defaultOptions.retryCondition=isNetworkOrIdempotentRequestError]
+ *        A function to determine if the error can be retried
+ * @param {Function} [defaultOptions.retryDelay=noDelay]
+ *        A function to determine the delay between retry requests
+ * @param {Function} [defaultOptions.onRetry=()=>{}]
+ *        A function to get notified when a retry occurs
+ * @return {{ requestInterceptorId: number, responseInterceptorId: number }}
+ *        The ids of the interceptors added to the request and to the response (so they can be ejected at a later time)
+ */
+
+
+function _shouldRetry() {
+  _shouldRetry = _asyncToGenerator(function* (currentState, error) {
+    var {
+      retries,
+      retryCondition
+    } = currentState;
+    var shouldRetryOrPromise = currentState.retryCount < retries && retryCondition(error); // This could be a promise
+
+    if (typeof shouldRetryOrPromise === 'object') {
+      try {
+        var shouldRetryPromiseResult = yield shouldRetryOrPromise; // keep return true unless shouldRetryPromiseResult return false for compatibility
+
+        return shouldRetryPromiseResult !== false;
+      } catch (_err) {
+        return false;
+      }
+    }
+
+    return shouldRetryOrPromise;
+  });
+  return _shouldRetry.apply(this, arguments);
+}
+
+function axiosRetry(axios, defaultOptions) {
+  var requestInterceptorId = axios.interceptors.request.use(config => {
+    var currentState = getCurrentState(config, defaultOptions);
+    currentState.lastRequestTime = Date.now();
+    return config;
+  });
+  var responseInterceptorId = axios.interceptors.response.use(null, /*#__PURE__*/function () {
+    var _ref = _asyncToGenerator(function* (error) {
+      var {
+        config
+      } = error; // If we have no information to retry the request
+
+      if (!config) {
+        return Promise.reject(error);
+      }
+
+      var currentState = getCurrentState(config, defaultOptions);
+
+      if (yield shouldRetry(currentState, error)) {
+        currentState.retryCount += 1;
+        var {
+          retryDelay,
+          shouldResetTimeout,
+          onRetry
+        } = currentState;
+        var delay = retryDelay(currentState.retryCount, error); // Axios fails merging this configuration to the default configuration because it has an issue
+        // with circular structures: https://github.com/mzabriskie/axios/issues/370
+
+        fixConfig(axios, config);
+
+        if (!shouldResetTimeout && config.timeout && currentState.lastRequestTime) {
+          var lastRequestDuration = Date.now() - currentState.lastRequestTime;
+          var timeout = config.timeout - lastRequestDuration - delay;
+
+          if (timeout <= 0) {
+            return Promise.reject(error);
+          }
+
+          config.timeout = timeout;
+        }
+
+        config.transformRequest = [data => data];
+        yield onRetry(currentState.retryCount, error, config);
+        return new Promise(resolve => setTimeout(() => resolve(axios(config)), delay));
+      }
+
+      return Promise.reject(error);
+    });
+
+    return function (_x3) {
+      return _ref.apply(this, arguments);
+    };
+  }());
+  return {
+    requestInterceptorId,
+    responseInterceptorId
+  };
+} // Compatibility with CommonJS
+
+axiosRetry.isNetworkError = isNetworkError;
+axiosRetry.isSafeRequestError = isSafeRequestError;
+axiosRetry.isIdempotentRequestError = isIdempotentRequestError;
+axiosRetry.isNetworkOrIdempotentRequestError = isNetworkOrIdempotentRequestError;
+axiosRetry.exponentialDelay = exponentialDelay;
+axiosRetry.isRetryableError = isRetryableError;
+//# sourceMappingURL=index.js.map
+;// CONCATENATED MODULE: ./index.js
+/* module decorator */ module = __nccwpck_require__.hmd(module);
+
+
+
+
+
+axiosRetry((axios_default()), { retries: 3, retryDelay: axiosRetry.exponentialDelay });
+
+async function runAction() {
+  (0,core.startGroup)("Preparing CircleCI Pipeline Trigger");
+  const repoOrg = github.context.repo.owner;
+  const repoName = github.context.repo.repo;
+  (0,core.info)(`Org: ${repoOrg}`);
+  (0,core.info)(`Repo: ${repoName}`);
+  const ref = github.context.ref;
+  const headRef = process.env.GITHUB_HEAD_REF;
+
+  const getBranch = () => {
+    if (ref.startsWith("refs/heads/")) {
+      return ref.substring(11);
+    } else if (ref.startsWith("refs/pull/") && headRef) {
+      (0,core.info)(`This is a PR. Using head ref ${headRef} instead of ${ref}`);
+      return headRef;
+    }
+    return ref;
+  };
+
+  const getTag = () => {
+    if (ref.startsWith("refs/tags/")) {
+      return ref.substring(10);
+    }
+  };
+
+  const headers = {
+    "content-type": "application/json",
+    "x-attribution-login": github.context.actor,
+    "x-attribution-actor-id": github.context.actor,
+    "Circle-Token": `${process.env.CCI_TOKEN}`,
+  };
+  const parameters = {
+    GHA_Actor: github.context.actor,
+    GHA_Action: github.context.action,
+    GHA_Event: github.context.eventName,
+  };
+
+  const ghaData = (0,core.getInput)("GHA_Data");
+  if (ghaData.length > 0) {
+    Object.assign(parameters, { GHA_Data: ghaData });
+  }
+
+  const metaData = (0,core.getInput)("GHA_Meta");
+  if (metaData.length > 0) {
+    Object.assign(parameters, { GHA_Meta: metaData });
+  }
+
+  const cciContext = (0,core.getInput)("CCI_Context");
+  if (cciContext.length > 0) {
+    Object.assign(parameters, { CCI_Context: cciContext });
+  }
+
+  let followWorkflow = (0,core.getInput)("Follow").toLowerCase() == "true";
+
+  const body = {
+    parameters: parameters,
+  };
+
+  const tag = getTag();
+  const branch = getBranch();
+
+  if (tag) {
+    Object.assign(body, { tag });
+  } else {
+    Object.assign(body, { branch });
+  }
+
+  const url = `https://circleci.com/api/v2/project/gh/${repoOrg}/${repoName}/pipeline`;
+
+  (0,core.info)(`Triggering CircleCI Pipeline for ${repoOrg}/${repoName}`);
+  (0,core.info)(`Triggering URL: ${url}`);
+  if (tag) {
+    (0,core.info)(`Triggering tag: ${tag}`);
+  } else {
+    (0,core.info)(`Triggering branch: ${branch}`);
+  }
+  (0,core.info)(`Parameters:\n${JSON.stringify(parameters)}`);
+  (0,core.endGroup)();
+
+  let workFlowUrl = null;
+
+  try {
+    const response = await axios_default().post(url, body, { headers });
+    (0,core.startGroup)("Successfully triggered CircleCI Pipeline");
+    (0,core.info)(`CircleCI API Response: ${JSON.stringify(response.data)}`);
+    (0,core.setOutput)("created_at", response.data.created_at);
+    (0,core.setOutput)("id", response.data.id);
+    (0,core.setOutput)("number", response.data.number);
+    (0,core.setOutput)("state", response.data.state);
+    workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
+    (0,core.endGroup)();
+    (0,core.notice)(
+      `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
+    );
+  } catch (error) {
+    (0,core.startGroup)("Failed to trigger CircleCI Pipeline");
+    (0,core.error)(error);
+    (0,core.setFailed)(error.message);
+    (0,core.endGroup)();
+    followWorkflow = false;
+  }
+
+  if (followWorkflow && workFlowUrl) {
+    try {
+      await monitorWorkflow(workFlowUrl, headers);
+    } catch (error) {
+      (0,core.setFailed)(`Failed to monitor CircleCI workflow: ${error.message}`);
+    }
+  }
+}
+
+async function monitorWorkflow(url, headers) {
+  let workflowComplete = false;
+  while (!workflowComplete) {
+    try {
+      const response = await axios_default().get(url, { headers });
+      const status = response.data.items[0].status;
+
+      if (!["not_run", "on_hold", "running"].includes(status)) {
+        workflowComplete = true;
+        if (status === "success") {
+          (0,core.info)("CircleCI Workflow is complete");
+        } else {
+          (0,core.setFailed)(`Failure: CircleCI Workflow ${status}`);
+        }
+      } else {
+        (0,core.info)(`Workflow status: ${status}. Continuing to monitor...`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    } catch (error) {
+      (0,core.error)(`Error monitoring workflow: ${error.message}`);
+      throw error;
+    }
+  }
+}
+
+// Run the action
+if (__nccwpck_require__.c[__nccwpck_require__.s] === module) {
+  runAction().catch((error) => (0,core.setFailed)(error.message));
+}
+
+
+/***/ }),
+
 /***/ 7351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -14435,8 +14914,8 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
+/******/ 			id: moduleId,
+/******/ 			loaded: false,
 /******/ 			exports: {}
 /******/ 		};
 /******/ 	
@@ -14449,9 +14928,15 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
 /******/ 		}
 /******/ 	
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+/******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
+/******/ 	
+/******/ 	// expose the module cache
+/******/ 	__nccwpck_require__.c = __webpack_module_cache__;
 /******/ 	
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat get default export */
@@ -14478,6 +14963,21 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 		};
 /******/ 	})();
 /******/ 	
+/******/ 	/* webpack/runtime/harmony module decorator */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.hmd = (module) => {
+/******/ 			module = Object.create(module);
+/******/ 			if (!module.children) module.children = [];
+/******/ 			Object.defineProperty(module, 'exports', {
+/******/ 				enumerable: true,
+/******/ 				set: () => {
+/******/ 					throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+/******/ 				}
+/******/ 			});
+/******/ 			return module;
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */
 /******/ 	(() => {
 /******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
@@ -14499,529 +14999,12 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-// ESM COMPAT FLAG
-__nccwpck_require__.r(__webpack_exports__);
-
-// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
-var core = __nccwpck_require__(2186);
-// EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
-var github = __nccwpck_require__(5438);
-// EXTERNAL MODULE: ./node_modules/axios/index.js
-var axios = __nccwpck_require__(6545);
-var axios_default = /*#__PURE__*/__nccwpck_require__.n(axios);
-// EXTERNAL MODULE: ./node_modules/is-retry-allowed/index.js
-var is_retry_allowed = __nccwpck_require__(841);
-;// CONCATENATED MODULE: ./node_modules/axios-retry/lib/esm/index.js
-function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
-
-function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
-
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) { symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); } keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-
-var namespace = 'axios-retry';
-/**
- * @param  {Error}  error
- * @return {boolean}
- */
-
-function isNetworkError(error) {
-  var CODE_EXCLUDE_LIST = ['ERR_CANCELED', 'ECONNABORTED'];
-  return !error.response && Boolean(error.code) && // Prevents retrying cancelled requests
-  !CODE_EXCLUDE_LIST.includes(error.code) && // Prevents retrying timed out & cancelled requests
-  is_retry_allowed(error) // Prevents retrying unsafe errors
-  ;
-}
-var SAFE_HTTP_METHODS = ['get', 'head', 'options'];
-var IDEMPOTENT_HTTP_METHODS = SAFE_HTTP_METHODS.concat(['put', 'delete']);
-/**
- * @param  {Error}  error
- * @return {boolean}
- */
-
-function isRetryableError(error) {
-  return error.code !== 'ECONNABORTED' && (!error.response || error.response.status >= 500 && error.response.status <= 599);
-}
-/**
- * @param  {Error}  error
- * @return {boolean}
- */
-
-function isSafeRequestError(error) {
-  if (!error.config) {
-    // Cannot determine if the request can be retried
-    return false;
-  }
-
-  return isRetryableError(error) && SAFE_HTTP_METHODS.indexOf(error.config.method) !== -1;
-}
-/**
- * @param  {Error}  error
- * @return {boolean}
- */
-
-function isIdempotentRequestError(error) {
-  if (!error.config) {
-    // Cannot determine if the request can be retried
-    return false;
-  }
-
-  return isRetryableError(error) && IDEMPOTENT_HTTP_METHODS.indexOf(error.config.method) !== -1;
-}
-/**
- * @param  {Error}  error
- * @return {boolean}
- */
-
-function isNetworkOrIdempotentRequestError(error) {
-  return isNetworkError(error) || isIdempotentRequestError(error);
-}
-/**
- * @return {number} - delay in milliseconds, always 0
- */
-
-function noDelay() {
-  return 0;
-}
-/**
- * Set delayFactor 1000 for an exponential delay to occur on the order
- * of seconds
- * @param  {number} [retryNumber=0]
- * @param  {Error}  error - unused; for existing API of retryDelay callback
- * @param  {number} [delayFactor=100] milliseconds
- * @return {number} - delay in milliseconds
- */
-
-
-function exponentialDelay() {
-  var retryNumber = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-  var error = arguments.length > 1 ? arguments[1] : undefined;
-  var delayFactor = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 100;
-  var delay = Math.pow(2, retryNumber) * delayFactor;
-  var randomSum = delay * 0.2 * Math.random(); // 0-20% of the delay
-
-  return delay + randomSum;
-}
-/** @type {IAxiosRetryConfig} */
-
-var DEFAULT_OPTIONS = {
-  retries: 3,
-  retryCondition: isNetworkOrIdempotentRequestError,
-  retryDelay: noDelay,
-  shouldResetTimeout: false,
-  onRetry: () => {}
-};
-/**
- * Returns the axios-retry options for the current request
- * @param  {AxiosRequestConfig} config
- * @param  {IAxiosRetryConfig} defaultOptions
- * @return {IAxiosRetryConfigExtended}
- */
-
-function getRequestOptions(config, defaultOptions) {
-  return _objectSpread(_objectSpread(_objectSpread({}, DEFAULT_OPTIONS), defaultOptions), config[namespace]);
-}
-/**
- * Initializes and returns the retry state for the given request/config
- * @param  {AxiosRequestConfig} config
- * @param  {IAxiosRetryConfig} defaultOptions
- * @return {IAxiosRetryConfigExtended}
- */
-
-
-function getCurrentState(config, defaultOptions) {
-  var currentState = getRequestOptions(config, defaultOptions);
-  currentState.retryCount = currentState.retryCount || 0;
-  config[namespace] = currentState;
-  return currentState;
-}
-/**
- * @param  {Axios} axios
- * @param  {AxiosRequestConfig} config
- */
-
-
-function fixConfig(axios, config) {
-  if (axios.defaults.agent === config.agent) {
-    delete config.agent;
-  }
-
-  if (axios.defaults.httpAgent === config.httpAgent) {
-    delete config.httpAgent;
-  }
-
-  if (axios.defaults.httpsAgent === config.httpsAgent) {
-    delete config.httpsAgent;
-  }
-}
-/**
- * Checks retryCondition if request can be retried. Handles it's returning value or Promise.
- * @param  {IAxiosRetryConfigExtended} currentState
- * @param  {Error} error
- * @return {Promise<boolean>}
- */
-
-
-function shouldRetry(_x, _x2) {
-  return _shouldRetry.apply(this, arguments);
-}
-/**
- * Adds response interceptors to an axios instance to retry requests failed due to network issues
- *
- * @example
- *
- * import axios from 'axios';
- *
- * axiosRetry(axios, { retries: 3 });
- *
- * axios.get('http://example.com/test') // The first request fails and the second returns 'ok'
- *   .then(result => {
- *     result.data; // 'ok'
- *   });
- *
- * // Exponential back-off retry delay between requests
- * axiosRetry(axios, { retryDelay : axiosRetry.exponentialDelay});
- *
- * // Custom retry delay
- * axiosRetry(axios, { retryDelay : (retryCount) => {
- *   return retryCount * 1000;
- * }});
- *
- * // Also works with custom axios instances
- * const client = axios.create({ baseURL: 'http://example.com' });
- * axiosRetry(client, { retries: 3 });
- *
- * client.get('/test') // The first request fails and the second returns 'ok'
- *   .then(result => {
- *     result.data; // 'ok'
- *   });
- *
- * // Allows request-specific configuration
- * client
- *   .get('/test', {
- *     'axios-retry': {
- *       retries: 0
- *     }
- *   })
- *   .catch(error => { // The first request fails
- *     error !== undefined
- *   });
- *
- * @param {Axios} axios An axios instance (the axios object or one created from axios.create)
- * @param {Object} [defaultOptions]
- * @param {number} [defaultOptions.retries=3] Number of retries
- * @param {boolean} [defaultOptions.shouldResetTimeout=false]
- *        Defines if the timeout should be reset between retries
- * @param {Function} [defaultOptions.retryCondition=isNetworkOrIdempotentRequestError]
- *        A function to determine if the error can be retried
- * @param {Function} [defaultOptions.retryDelay=noDelay]
- *        A function to determine the delay between retry requests
- * @param {Function} [defaultOptions.onRetry=()=>{}]
- *        A function to get notified when a retry occurs
- * @return {{ requestInterceptorId: number, responseInterceptorId: number }}
- *        The ids of the interceptors added to the request and to the response (so they can be ejected at a later time)
- */
-
-
-function _shouldRetry() {
-  _shouldRetry = _asyncToGenerator(function* (currentState, error) {
-    var {
-      retries,
-      retryCondition
-    } = currentState;
-    var shouldRetryOrPromise = currentState.retryCount < retries && retryCondition(error); // This could be a promise
-
-    if (typeof shouldRetryOrPromise === 'object') {
-      try {
-        var shouldRetryPromiseResult = yield shouldRetryOrPromise; // keep return true unless shouldRetryPromiseResult return false for compatibility
-
-        return shouldRetryPromiseResult !== false;
-      } catch (_err) {
-        return false;
-      }
-    }
-
-    return shouldRetryOrPromise;
-  });
-  return _shouldRetry.apply(this, arguments);
-}
-
-function axiosRetry(axios, defaultOptions) {
-  var requestInterceptorId = axios.interceptors.request.use(config => {
-    var currentState = getCurrentState(config, defaultOptions);
-    currentState.lastRequestTime = Date.now();
-    return config;
-  });
-  var responseInterceptorId = axios.interceptors.response.use(null, /*#__PURE__*/function () {
-    var _ref = _asyncToGenerator(function* (error) {
-      var {
-        config
-      } = error; // If we have no information to retry the request
-
-      if (!config) {
-        return Promise.reject(error);
-      }
-
-      var currentState = getCurrentState(config, defaultOptions);
-
-      if (yield shouldRetry(currentState, error)) {
-        currentState.retryCount += 1;
-        var {
-          retryDelay,
-          shouldResetTimeout,
-          onRetry
-        } = currentState;
-        var delay = retryDelay(currentState.retryCount, error); // Axios fails merging this configuration to the default configuration because it has an issue
-        // with circular structures: https://github.com/mzabriskie/axios/issues/370
-
-        fixConfig(axios, config);
-
-        if (!shouldResetTimeout && config.timeout && currentState.lastRequestTime) {
-          var lastRequestDuration = Date.now() - currentState.lastRequestTime;
-          var timeout = config.timeout - lastRequestDuration - delay;
-
-          if (timeout <= 0) {
-            return Promise.reject(error);
-          }
-
-          config.timeout = timeout;
-        }
-
-        config.transformRequest = [data => data];
-        yield onRetry(currentState.retryCount, error, config);
-        return new Promise(resolve => setTimeout(() => resolve(axios(config)), delay));
-      }
-
-      return Promise.reject(error);
-    });
-
-    return function (_x3) {
-      return _ref.apply(this, arguments);
-    };
-  }());
-  return {
-    requestInterceptorId,
-    responseInterceptorId
-  };
-} // Compatibility with CommonJS
-
-axiosRetry.isNetworkError = isNetworkError;
-axiosRetry.isSafeRequestError = isSafeRequestError;
-axiosRetry.isIdempotentRequestError = isIdempotentRequestError;
-axiosRetry.isNetworkOrIdempotentRequestError = isNetworkOrIdempotentRequestError;
-axiosRetry.exponentialDelay = exponentialDelay;
-axiosRetry.isRetryableError = isRetryableError;
-//# sourceMappingURL=index.js.map
-;// CONCATENATED MODULE: ./index.js
-
-
-
-
-
-axiosRetry((axios_default()), { retries: 3, retryDelay: axiosRetry.exponentialDelay });
-(async () => {
-  (0,core.startGroup)("Preparing CircleCI Pipeline Trigger");
-  const repoOrg = github.context.repo.owner;
-  const repoName = github.context.repo.repo;
-  (0,core.info)(`Org: ${repoOrg}`);
-  (0,core.info)(`Repo: ${repoName}`);
-  const ref = github.context.ref;
-  const headRef = process.env.GITHUB_HEAD_REF;
-
-  const getBranch = () => {
-    if (ref.startsWith("refs/heads/")) {
-      return ref.substring(11);
-    } else if (ref.startsWith("refs/pull/") && headRef) {
-      (0,core.info)(`This is a PR. Using head ref ${headRef} instead of ${ref}`);
-      return headRef;
-    }
-    return ref;
-  };
-
-  const getTag = () => {
-    if (ref.startsWith("refs/tags/")) {
-      return ref.substring(10);
-    }
-  };
-
-  const headers = {
-    "content-type": "application/json",
-    "x-attribution-login": github.context.actor,
-    "x-attribution-actor-id": github.context.actor,
-    "Circle-Token": `${process.env.CCI_TOKEN}`,
-  };
-  const parameters = {
-    GHA_Actor: github.context.actor,
-    GHA_Action: github.context.action,
-    GHA_Event: github.context.eventName,
-  };
-
-  const ghaData = (0,core.getInput)("GHA_Data");
-  if (ghaData.length > 0) {
-    Object.assign(parameters, { GHA_Data: ghaData });
-  }
-
-  const metaData = (0,core.getInput)("GHA_Meta");
-  if (metaData.length > 0) {
-    Object.assign(parameters, { GHA_Meta: metaData });
-  }
-
-  const cciContext = (0,core.getInput)("CCI_Context");
-  if (cciContext.length > 0) {
-    Object.assign(parameters, { CCI_Context: cciContext });
-  }
-
-  let followWorkflow = (0,core.getInput)("Follow").toLowerCase() == "true";
-
-  const body = {
-    parameters: parameters,
-  };
-
-  const tag = getTag();
-  const branch = getBranch();
-
-  if (tag) {
-    Object.assign(body, { tag });
-  } else {
-    Object.assign(body, { branch });
-  }
-
-  const url = `https://circleci.com/api/v2/project/gh/${repoOrg}/${repoName}/pipeline`;
-
-  (0,core.info)(`Triggering CircleCI Pipeline for ${repoOrg}/${repoName}`);
-  (0,core.info)(`Triggering URL: ${url}`);
-  if (tag) {
-    (0,core.info)(`Triggering tag: ${tag}`);
-  } else {
-    (0,core.info)(`Triggering branch: ${branch}`);
-  }
-  (0,core.info)(`Parameters:\n${JSON.stringify(parameters)}`);
-  (0,core.endGroup)();
-
-  let workFlowUrl = null;
-
-  await axios_default().post(url, body, { headers: headers })
-    .then((response) => {
-      (0,core.startGroup)("Successfully triggered CircleCI Pipeline");
-      (0,core.info)(`CircleCI API Response: ${JSON.stringify(response.data)}`);
-      (0,core.setOutput)("created_at", response.data.created_at);
-      (0,core.setOutput)("id", response.data.id);
-      (0,core.setOutput)("number", response.data.number);
-      (0,core.setOutput)("state", response.data.state);
-      workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
-      (0,core.endGroup)();
-      (0,core.notice)(
-        `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
-      );
-    })
-    .catch((error) => {
-      (0,core.startGroup)("Failed to trigger CircleCI Pipeline");
-      (0,core.error)(error);
-      (0,core.setFailed)(error.message);
-      (0,core.endGroup)();
-      followWorkflow = false;
-    });
-
-  if (followWorkflow && workFlowUrl) {
-    try {
-      console.log("Testing the monitorWorkflow function");
-      await monitorWorkflow(workFlowUrl, headers);
-      console.log("monitorWorkflow function is completed");
-    } catch (error) {
-      (0,core.setFailed)(`Failed to monitor CircleCI workflow: ${error.message}`);
-    }
-  }
-
-  // const pollWorkflow = () => {
-  //   axios
-  //     .get(workFlowUrl, {
-  //       headers: headers,
-  //     })
-  //     .then((response) => {
-  //       error(`called inside pollWorkflow`);
-  //       error(response);
-  //       if (
-  //         !["not_run", "on_hold", "running"].includes(
-  //           response.data.items[0].status
-  //         )
-  //       ) {
-  //         followWorkflow = false;
-  //         if (response.data.items[0].status == "success") {
-  //           info("CircleCI Workflow is complete");
-  //         } else {
-  //           setFailed(
-  //             `Failure: CircleCI Workflow ${response.data.items[0].status}`
-  //           );
-  //         }
-  //       }
-  //     })
-  //     .catch((error) => {
-  //       setFailed(`Failed after retries: ${error.message}`);
-  //       followWorkflow = false;
-  //     });
-  // };
-
-  // if (followWorkflow) {
-  //   info("Polling CircleCI Workflow");
-  //   const pollInterval = 3000; // in milliseconds
-  //   const checkWorkflowStatus = setInterval(() => {
-  //     if (!followWorkflow) {
-  //       clearInterval(checkWorkflowStatus);
-  //     } else {
-  //       pollWorkflow();
-  //     }
-  //   }, pollInterval);
-  // }
-})();
-
-async function monitorWorkflow(url, headers) {
-  let workflowComplete = false;
-  console.log("Starting monitorWorkflow");
-  while (!workflowComplete) {
-    try {
-      console.log("Trying to get workflow status");
-      const response = await axios_default().get(url, { headers });
-      console.log("Got response");
-      console.log(response);
-      const status = response.data.items[0].status;
-      console.log(status);
-
-      if (!["not_run", "on_hold", "running"].includes(status)) {
-        console.log("Inside if");
-        workflowComplete = true;
-        if (status === "success") {
-          console.log("Is successful");
-          (0,core.info)("CircleCI Workflow is complete");
-          console.log("CCI workflow is complete");
-        } else {
-          (0,core.setFailed)(`Failure: CircleCI Workflow ${status}`);
-        }
-      } else {
-        (0,core.info)(`Workflow status: ${status}. Continuing to monitor...`);
-      }
-      console.log("Going to sleep for 3 seconds");
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      console.log("Sleeping for 3 seconds done");
-      console.log("End of while loop");
-      console.log("workflowComplete: ", workflowComplete);
-    } catch (error) {
-      (0,core.error)(`Error monitoring workflow: ${error.message}`);
-      throw error;
-    }
-  }
-  console.log("End of monitorWorkflow");
-}
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// module cache are used so entry inlining is disabled
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	var __webpack_exports__ = __nccwpck_require__(__nccwpck_require__.s = 1498);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
