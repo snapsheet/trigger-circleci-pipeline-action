@@ -12,6 +12,7 @@ import { context } from "@actions/github";
 import axios from "axios";
 import axiosRetry from "axios-retry";
 
+axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 (async () => {
   startGroup("Preparing CircleCI Pipeline Trigger");
   const repoOrg = context.repo.owner;
@@ -20,7 +21,6 @@ import axiosRetry from "axios-retry";
   info(`Repo: ${repoName}`);
   const ref = context.ref;
   const headRef = process.env.GITHUB_HEAD_REF;
-  axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
   const getBranch = () => {
     if (ref.startsWith("refs/heads/")) {
@@ -117,44 +117,83 @@ import axiosRetry from "axios-retry";
       followWorkflow = false;
     });
 
-  const pollWorkflow = () => {
-    axios
-      .get(workFlowUrl, {
-        headers: headers,
-      })
-      .then((response) => {
-        error(`called inside pollWorkflow`);
-        error(response);
-        if (
-          !["not_run", "on_hold", "running"].includes(
-            response.data.items[0].status
-          )
-        ) {
-          followWorkflow = false;
-          if (response.data.items[0].status == "success") {
-            info("CircleCI Workflow is complete");
-          } else {
-            setFailed(
-              `Failure: CircleCI Workflow ${response.data.items[0].status}`
-            );
-          }
-        }
-      })
-      .catch((error) => {
-        setFailed(`Failed after retries: ${error.message}`);
-        followWorkflow = false;
-      });
-  };
-
-  if (followWorkflow) {
-    info("Polling CircleCI Workflow");
-    const pollInterval = 3000; // in milliseconds
-    const checkWorkflowStatus = setInterval(() => {
-      if (!followWorkflow) {
-        clearInterval(checkWorkflowStatus);
-      } else {
-        pollWorkflow();
-      }
-    }, pollInterval);
+  if (followWorkflow && workFlowUrl) {
+    try {
+      console.log("Testing the monitorWorkflow function");
+      await monitorWorkflow(workFlowUrl, headers);
+    } catch (error) {
+      setFailed(`Failed to monitor CircleCI workflow: ${error.message}`);
+    }
   }
+
+  // const pollWorkflow = () => {
+  //   axios
+  //     .get(workFlowUrl, {
+  //       headers: headers,
+  //     })
+  //     .then((response) => {
+  //       error(`called inside pollWorkflow`);
+  //       error(response);
+  //       if (
+  //         !["not_run", "on_hold", "running"].includes(
+  //           response.data.items[0].status
+  //         )
+  //       ) {
+  //         followWorkflow = false;
+  //         if (response.data.items[0].status == "success") {
+  //           info("CircleCI Workflow is complete");
+  //         } else {
+  //           setFailed(
+  //             `Failure: CircleCI Workflow ${response.data.items[0].status}`
+  //           );
+  //         }
+  //       }
+  //     })
+  //     .catch((error) => {
+  //       setFailed(`Failed after retries: ${error.message}`);
+  //       followWorkflow = false;
+  //     });
+  // };
+
+  // if (followWorkflow) {
+  //   info("Polling CircleCI Workflow");
+  //   const pollInterval = 3000; // in milliseconds
+  //   const checkWorkflowStatus = setInterval(() => {
+  //     if (!followWorkflow) {
+  //       clearInterval(checkWorkflowStatus);
+  //     } else {
+  //       pollWorkflow();
+  //     }
+  //   }, pollInterval);
+  // }
 })();
+
+async function monitorWorkflow(url, headers) {
+  let workflowComplete = false;
+  console.log("Starting monitorWorkflow")
+  while (!workflowComplete) {
+    try {
+      console.log("Trying to get workflow status");
+      const response = await axios.get(url, { headers });
+      console.log("Got response");
+      console.log(response);     
+      const status = response.data.items[0].status;
+      console.log(status);     
+
+      if (!["not_run", "on_hold", "running"].includes(status)) {
+        workflowComplete = true;
+        if (status === "success") {
+          info("CircleCI Workflow is complete");
+        } else {
+          setFailed(`Failure: CircleCI Workflow ${status}`);
+        }
+      } else {
+        info(`Workflow status: ${status}. Continuing to monitor...`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    } catch (error) {
+      coreError(`Error monitoring workflow: ${error.message}`);
+      throw error;
+    }
+  }
+}
