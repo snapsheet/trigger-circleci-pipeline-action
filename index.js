@@ -89,7 +89,7 @@ info(`Parameters:\n${JSON.stringify(parameters)}`);
 endGroup();
 
 let client = axios.create({baseURL, headers});
-
+let workflowUrl = null;
 axiosRetry(
   client,
   {
@@ -98,7 +98,7 @@ axiosRetry(
   }
 );
 
-client
+await client
   .post(`/project/gh/${repoOrg}/${repoName}/pipeline`, body)
   .then((response) => {
     startGroup("Successfully triggered CircleCI Pipeline");
@@ -111,41 +111,7 @@ client
     notice(
       `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
     );
-    
-    if (followWorkflow) {
-      info("Polling CircleCI Workflow");
-    }
-  
-    client.interceptors.response.use(async (response) => {
-      // always reject and handle retry logic via axios-retry config
-      return Promise.reject(response);
-    });
-    
-    const maxDelay = 4;
-    client
-      .get(`/pipeline/${response.data.id}/workflow`, {
-        'axios-retry': {
-          retries: (60 / maxDelay) * 60, // retry for roughly an hour
-          retryDelay: () => {
-            // ...add any other custom logic for jitter.
-            return maxDelay * 1000; // in milliseconds
-          },
-          retryCondition: (response) => {
-            let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
-            result ||= ["not_run", "on_hold", "running"].includes(response.data.items[0].status);
-
-            return result;
-          },
-          onMaxRetryTimesExceeded: (error, retryCount) => {
-            setFailed(`Failure: CircleCI Workflow ${response.data.items[0].status}`);
-          }
-        }
-      }).then((response) => {
-        info("CircleCI Workflow is complete");
-      })
-    .catch((error) => {
-      setFailed(`Failed after retries: ${error.message}`);
-    });
+    workflowUrl = `/pipeline/${response.data.id}/workflow`;
   })
   .catch((error) => {
     startGroup("Failed to trigger CircleCI Pipeline");
@@ -153,3 +119,38 @@ client
     setFailed(error.message);
     endGroup();
   });
+
+if (followWorkflow) {
+  info("Polling CircleCI Workflow");
+
+  client.interceptors.response.use(async (response) => {
+    // always reject and handle retry logic via axios-retry config
+    return Promise.reject(response);
+  });
+  
+  const maxDelay = 4;
+  await client
+    .get(workflowUrl, {
+      'axios-retry': {
+        retries: (60 / maxDelay) * 60, // retry for roughly an hour
+        retryDelay: () => {
+          // ...add any other custom logic for jitter.
+          return maxDelay * 1000; // in milliseconds
+        },
+        retryCondition: (response) => {
+          let result = axiosRetry.isNetworkOrIdempotentRequestError(response);
+          result ||= ["not_run", "on_hold", "running"].includes(response.data.items[0].status);
+  
+          return result;
+        },
+        onMaxRetryTimesExceeded: (error, retryCount) => {
+          setFailed(`Failure: CircleCI Workflow ${response.data.items[0].status}`);
+        }
+      }
+    }).then((response) => {
+      info("CircleCI Workflow is complete");
+    })
+  .catch((error) => {
+    setFailed(`Failed after retries: ${error.message}`);
+  });
+}
