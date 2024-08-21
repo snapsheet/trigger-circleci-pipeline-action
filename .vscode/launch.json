@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Test Cases",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "program": "${workspaceFolder}/node_modules/.bin/jest"
+      }
+    ]
+}
