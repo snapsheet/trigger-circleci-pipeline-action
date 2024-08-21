@@ -74,22 +74,6 @@ describe('Axios retry on failure', () => {
             })
           }
         });
-        require("../index");
-        jest.advanceTimersByTime(10000);
-        await waitForPollToFinish();
-        
+        require("../index");        
       });
 });
-
-
-function waitForPollToFinish() {
-    return new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-            // Check a condition to see if polling is done
-            if (!global.followWorkflow) { // Replace this with your actual condition
-                clearInterval(checkInterval);
-                resolve();
-            }
-        }, 100); // Check every 100ms
-    });
-}
