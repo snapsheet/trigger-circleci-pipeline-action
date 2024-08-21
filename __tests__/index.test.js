@@ -55,9 +55,9 @@ describe('Axios retry on failure', () => {
     });
 
 
-    it('should retry the request if the first attempt fails', async () => {
-        jest.mock('axios', () => {
-          let counter = 0;
+    it('should retry the request if the first attempt fails', () => {
+      let counter = 0;
+      jest.mock('axios', () => {
           const originalAxios = jest.requireActual('axios');
           return {
             ...originalAxios,
@@ -82,9 +82,8 @@ describe('Axios retry on failure', () => {
           }
         });
         console.log("before promise");
-        await require("../index");
-        await new Promise((resolve) => setTimeout(resolve, 4000));
-        console.log("It is fine till here");
+        require("../index");
+        expect(counter).toBeGreaterThan(0);
       });
       
 });
