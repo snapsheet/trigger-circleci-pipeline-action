@@ -34,7 +34,6 @@ describe('Axios retry on failure', () => {
         jest.spyOn(core, 'warning').mockImplementation(jest.fn());
         jest.spyOn(core, 'info').mockImplementation(jest.fn());
         jest.spyOn(core, 'debug').mockImplementation(jest.fn());
-
         jest.spyOn(github.context, 'repo', 'get').mockImplementation(() => {
             return {
                 owner: 'some-owner',
@@ -60,6 +59,7 @@ describe('Axios retry on failure', () => {
           return {
             ...originalAxios,
             get: (async(url, headers) => {
+              counter++;
               throw new Error('Request failed');
             }),
             post: (async (url, body, headers) => {
@@ -74,6 +74,7 @@ describe('Axios retry on failure', () => {
             })
           }
         });
-        require("../index");        
+        require("../index");
+        expect(counter).toBeGreaterThan(0);  
       });
 });
