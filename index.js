@@ -3,4 +3,3 @@ import { context } from "@actions/github";
 
 const trigger = new CircleCIPipelineTrigger(context);
 trigger.triggerPipeline();
-await trigger.monitorWorkflow();
