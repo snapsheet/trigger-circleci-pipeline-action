@@ -10,6 +10,7 @@ import {
 } from "@actions/core";
 import { context } from "@actions/github";
 import axios from "axios";
+import axiosRetry from "axios-retry";
 
 startGroup("Preparing CircleCI Pipeline Trigger");
 const repoOrg = context.repo.owner;
@@ -18,6 +19,7 @@ info(`Org: ${repoOrg}`);
 info(`Repo: ${repoName}`);
 const ref = context.ref;
 const headRef = process.env.GITHUB_HEAD_REF;
+axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 const getBranch = () => {
   if (ref.startsWith("refs/heads/")) {
@@ -90,31 +92,6 @@ endGroup();
 
 let workFlowUrl = null;
 
-await axios
-  .post(url, body, { headers: headers })
-  .then((response) => {
-    startGroup("Successfully triggered CircleCI Pipeline");
-    info(`CircleCI API Response: ${JSON.stringify(response.data)}`);
-    setOutput("created_at", response.data.created_at);
-    setOutput("id", response.data.id);
-    setOutput("number", response.data.number);
-    setOutput("state", response.data.state);
-    workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
-    endGroup();
-    notice(
-      `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
-    );
-  })
-  .catch((error) => {
-    startGroup("Failed to trigger CircleCI Pipeline");
-    coreError(error);
-    setFailed(error.message);
-    endGroup();
-    followWorkflow = false;
-  });
-
-const pollInterval = 3000; // in milliseconds
-
 const pollWorkflow = () => {
   axios
     .get(workFlowUrl, {
@@ -137,22 +114,42 @@ const pollWorkflow = () => {
       }
     })
     .catch((error) => {
-      startGroup("Failed to Poll CircleCI Workflow");
-      coreError(error);
-      setFailed(error.message);
-      endGroup();
+      setFailed(`Failed after retries: ${error.message}`);
       followWorkflow = false;
     });
 };
 
-if (followWorkflow) {
-  info("Polling CircleCI Workflow");
-}
+axios
+  .post(url, body, { headers: headers })
+  .then((response) => {
+    startGroup("Successfully triggered CircleCI Pipeline");
+    info(`CircleCI API Response: ${JSON.stringify(response.data)}`);
+    setOutput("created_at", response.data.created_at);
+    setOutput("id", response.data.id);
+    setOutput("number", response.data.number);
+    setOutput("state", response.data.state);
+    workFlowUrl = `https://circleci.com/api/v2/pipeline/${response.data.id}/workflow`;
+    endGroup();
+    notice(
+      `Monitor the workflow in CircleCI with:  https://app.circleci.com/pipelines/github/${repoOrg}/${repoName}/${response.data.number}`
+    );
 
-const checkWebsiteStatus = setInterval(() => {
-  if (!followWorkflow) {
-    clearInterval(checkWebsiteStatus);
-  } else {
-    pollWorkflow();
-  }
-}, pollInterval);
+    if (followWorkflow) {
+      info("Polling CircleCI Workflow");
+    }
+    const pollInterval = 3000; // in milliseconds
+    const checkWorkflowStatus = setInterval(() => {
+      if (!followWorkflow) {
+        clearInterval(checkWorkflowStatus);
+      } else {
+        pollWorkflow();
+      }
+    }, pollInterval);
+  })
+  .catch((error) => {
+    startGroup("Failed to trigger CircleCI Pipeline");
+    coreError(error);
+    setFailed(error.message);
+    endGroup();
+    followWorkflow = false;
+  });
