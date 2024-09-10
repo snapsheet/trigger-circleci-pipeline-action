@@ -14936,11 +14936,11 @@ class CircleCIPipelineTrigger {
             }
             })
             .catch((error) => {
-            (0,core.startGroup)("Failed to trigger CircleCI Pipeline");
-            (0,core.error)(error);
-            (0,core.setFailed)(error.message);
-            (0,core.endGroup)();
-            followWorkflow = false;
+                (0,core.startGroup)("Failed to trigger CircleCI Pipeline");
+                (0,core.error)(error);
+                (0,core.setFailed)(error.message);
+                (0,core.endGroup)();
+                followWorkflow = false;
             });
         });
 
@@ -15029,8 +15029,7 @@ class CircleCIPipelineTrigger {
 
 
 
-const trigger = new CircleCIPipelineTrigger(github.context);
-trigger.triggerPipeline();
+new CircleCIPipelineTrigger(github.context);
 
 })();
 
