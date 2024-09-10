@@ -123,11 +123,11 @@ export class CircleCIPipelineTrigger {
             }
             })
             .catch((error) => {
-            startGroup("Failed to trigger CircleCI Pipeline");
-            coreError(error);
-            setFailed(error.message);
-            endGroup();
-            followWorkflow = false;
+                startGroup("Failed to trigger CircleCI Pipeline");
+                coreError(error);
+                setFailed(error.message);
+                endGroup();
+                followWorkflow = false;
             });
         });
 
