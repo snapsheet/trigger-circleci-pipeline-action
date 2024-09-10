@@ -457,7 +457,7 @@ class CircleCIPipelineTrigger {
         console.log("Starting monitorWorkflow");
         while (!workflowComplete) {
             try {
-                // console.log("Trying to get workflow status");
+                console.log("monitoring url is ", url);
                 const response = await axios_default().get(url, { headers });
                 console.log(response);
                 const status = response.data.items[0].status;
