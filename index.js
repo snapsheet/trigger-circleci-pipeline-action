@@ -97,9 +97,7 @@ const pollWorkflow = () => {
   .get(workFlowUrl, {
     headers: headers,
     })
-    .then((response) => {
-      error(`called inside pollWorkflow`);
-      error(response)      
+    .then((response) => { 
       if (
         !["not_run", "on_hold", "running"].includes(
           response.data.items[0].status
