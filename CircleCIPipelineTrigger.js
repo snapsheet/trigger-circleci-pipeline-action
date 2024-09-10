@@ -140,7 +140,7 @@ export class CircleCIPipelineTrigger {
         while (!workflowComplete) {
             try {
                 console.log("monitoring url is ", url);
-                const response = await axios.get(url, { headers });
+                const response = await axios.get(url, { headers: headers });
                 console.log(response);
                 const status = response.data.items[0].status;
 
