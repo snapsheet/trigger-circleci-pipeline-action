@@ -16,6 +16,7 @@ import axiosRetry from "axios-retry";
 export class CircleCIPipelineTrigger {
     constructor(context) {
         axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
+
         (async () => {
         startGroup("Preparing CircleCI Pipeline Trigger");
         const repoOrg = context.repo.owner;
@@ -129,7 +130,7 @@ export class CircleCIPipelineTrigger {
                 endGroup();
                 followWorkflow = false;
             });
-        });
+        })();
 
     }   
 
