@@ -458,8 +458,9 @@ class CircleCIPipelineTrigger {
         while (!workflowComplete) {
             console.log("monitoring url is ", url);
             // const response = await axios.get(url, { headers: headers });
-            await axios_default().get(url, { headers: headers })
+            axios_default().get(url, { headers: headers })
             .then(async (response) => { 
+                await new Promise((resolve) => setTimeout(resolve, 3000));
                 console.log("Inside axios get");
                 console.log(response);
                 const status = response.data.items[0].status;
@@ -478,7 +479,6 @@ class CircleCIPipelineTrigger {
                     (0,core.info)(`Workflow status: ${status}. Continuing to monitor...`);
                 }
                 // console.log("Going to sleep for 3 seconds");
-                await new Promise((resolve) => setTimeout(resolve, 3000));
             })
             .catch((error) => {
                 (0,core.error)(`Error monitoring workflow: ${error.message}`);
