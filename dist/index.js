@@ -460,6 +460,7 @@ class CircleCIPipelineTrigger {
             // const response = await axios.get(url, { headers: headers });
             await axios_default().get(url, { headers: headers })
             .then(async (response) => { 
+                console.log("Inside axios get");
                 console.log(response);
                 const status = response.data.items[0].status;
 
