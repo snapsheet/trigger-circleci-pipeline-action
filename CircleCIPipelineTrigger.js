@@ -116,7 +116,7 @@ export class CircleCIPipelineTrigger {
             if (followWorkflow && workFlowUrl) {
                 try {
                 // console.log("Testing the monitorWorkflow function");
-                await monitorWorkflow(workFlowUrl, headers);
+                await this.monitorWorkflow(workFlowUrl, headers);
                 // console.log("monitorWorkflow function is completed");
                 } catch (error) {
                 setFailed(`Failed to monitor CircleCI workflow: ${error.message}`);
