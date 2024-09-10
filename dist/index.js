@@ -459,6 +459,7 @@ class CircleCIPipelineTrigger {
             try {
                 // console.log("Trying to get workflow status");
                 const response = await axios_default().get(url, { headers });
+                console.log(response);
                 const status = response.data.items[0].status;
 
                 if (!["not_run", "on_hold", "running"].includes(status)) {
