@@ -138,9 +138,10 @@ export class CircleCIPipelineTrigger {
         let workflowComplete = false;
         console.log("Starting monitorWorkflow");
         while (!workflowComplete) {
-            try {
-                console.log("monitoring url is ", url);
-                const response = await axios.get(url, { headers: headers });
+            console.log("monitoring url is ", url);
+            // const response = await axios.get(url, { headers: headers });
+            await axios.get(url, { headers: headers })
+            .then(async (response) => { 
                 console.log(response);
                 const status = response.data.items[0].status;
 
@@ -159,46 +160,46 @@ export class CircleCIPipelineTrigger {
                 }
                 // console.log("Going to sleep for 3 seconds");
                 await new Promise((resolve) => setTimeout(resolve, 3000));
+            })
+            .catch((error) => {
+                coreError(`Error monitoring workflow: ${error.message}`);
+                throw error;
+            });
+        }
+                
+    }
+}
+                
                 // console.log("Sleeping for 3 seconds done");
                 // console.log("End of while loop");
                 // console.log("workflowComplete: ", workflowComplete);
-            } catch (error) {
-                coreError(`Error monitoring workflow: ${error.message}`);
-                throw error;
-            }
-        }
-        console.log("End of monitorWorkflow");
-    }
-
-}
-
-
-
-        // const pollWorkflow = () => {
-        //   axios
-        //     .get(workFlowUrl, {
-        //       headers: headers,
-        //     })
-        //     .then((response) => {
-        //       error(`called inside pollWorkflow`);
-        //       error(response);
-        //       if (
-        //         !["not_run", "on_hold", "running"].includes(
-        //           response.data.items[0].status
-        //         )
-        //       ) {
-        //         followWorkflow = false;
-        //         if (response.data.items[0].status == "success") {
-        //           info("CircleCI Workflow is complete");
-        //         } else {
-        //           setFailed(
-        //             `Failure: CircleCI Workflow ${response.data.items[0].status}`
-        //           );
-        //         }
-        //       }
-        //     })
-        //     .catch((error) => {
-        //       setFailed(`Failed after retries: ${error.message}`);
+                
+                
+                // const pollWorkflow = () => {
+                    //   axios
+                    //     .get(workFlowUrl, {
+                        //       headers: headers,
+                        //     })
+                        //     .then((response) => {
+                            //       error(`called inside pollWorkflow`);
+                            //       error(response);
+                            //       if (
+                                //         !["not_run", "on_hold", "running"].includes(
+                                    //           response.data.items[0].status
+                                    //         )
+                                    //       ) {
+                                        //         followWorkflow = false;
+                                        //         if (response.data.items[0].status == "success") {
+                                            //           info("CircleCI Workflow is complete");
+                                            //         } else {
+                                                //           setFailed(
+                                                    //             `Failure: CircleCI Workflow ${response.data.items[0].status}`
+                                                    //           );
+                                                    //         }
+                                                    //       }
+                                                    //     })
+                                                    //     .catch((error) => {
+                                                        //       setFailed(`Failed after retries: ${error.message}`);
         //       followWorkflow = false;
         //     });
         // };
