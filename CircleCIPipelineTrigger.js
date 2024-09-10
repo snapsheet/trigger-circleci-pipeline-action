@@ -136,9 +136,9 @@ export class CircleCIPipelineTrigger {
 
     async monitorWorkflow(url, headers) {
         let workflowComplete = false;
+        console.log("monitoring url is ", url);
         console.log("Starting monitorWorkflow");
         while (!workflowComplete) {
-            console.log("monitoring url is ", url);
             // const response = await axios.get(url, { headers: headers });
             axios.get(url, { headers: headers })
             .then(async (response) => { 
